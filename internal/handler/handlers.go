@@ -44,7 +44,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	link := service.CreateShortLink(urlStr)
 	cnf := config.GetConfig()
-	resp := fmt.Sprintf("http://%s:%s/%s\r\n", cnf.HTTPURL, cnf.HTTPPort, link.ID)
+	resp := fmt.Sprintf("http://%s:%s/%s", cnf.HTTPURL, cnf.HTTPPort, link.ID)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))
