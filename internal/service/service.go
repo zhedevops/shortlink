@@ -27,7 +27,7 @@ func getShort(url string) string {
 	return string(res)
 }
 
-func GetOriginalUrl(id string) (string, bool) {
+func GetOriginalURL(id string) (string, bool) {
 	url, ok := store[id]
 	return url, ok
 }

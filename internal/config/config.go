@@ -7,20 +7,20 @@ import (
 )
 
 type Config struct {
-	HttpPort string
-	HttpUrl  string
+	HTTPURL  string
+	HTTPPort string
 }
 
 func GetConfig() *Config {
 	if err := godotenv.Load(".env"); err != nil {
 		return &Config{
-			HttpPort: "localhost",
-			HttpUrl:  "8080",
+			HTTPURL:  "localhost",
+			HTTPPort: "8080",
 		}
 	}
 
 	return &Config{
-		HttpPort: os.Getenv("SHORTLINK_HTTP_PORT"),
-		HttpUrl:  os.Getenv("SHORTLINK_HTTP_URL"),
+		HTTPURL:  os.Getenv("SHORTLINK_HTTP_URL"),
+		HTTPPort: os.Getenv("SHORTLINK_HTTP_PORT"),
 	}
 }

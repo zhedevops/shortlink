@@ -44,7 +44,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	link := service.CreateShortLink(urlStr)
 	cnf := config.GetConfig()
-	resp := fmt.Sprintf("http://%s:%s/%s\r\n", cnf.HttpUrl, cnf.HttpPort, link.Id)
+	resp := fmt.Sprintf("http://%s:%s/%s\r\n", cnf.HTTPURL, cnf.HTTPPort, link.ID)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))
@@ -53,13 +53,13 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetLinkByIdHandler(w http.ResponseWriter, r *http.Request) {
+func GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "expected GET method", http.StatusBadRequest)
 		return
 	}
 	id := r.URL.Path[1:]
-	urlStr, ok := service.GetOriginalUrl(id)
+	urlStr, ok := service.GetOriginalURL(id)
 	if !ok {
 		http.Error(w, "url not found", http.StatusBadRequest)
 		return

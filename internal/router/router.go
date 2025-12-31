@@ -10,7 +10,7 @@ import (
 
 func newRouter() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/{id}", handler.GetLinkByIdHandler)
+	mux.HandleFunc("/{id}", handler.GetLinkByIDHandler)
 	mux.HandleFunc("/", handler.MainHandler)
 	return mux
 }
@@ -18,5 +18,5 @@ func newRouter() *http.ServeMux {
 func Serve() error {
 	cnf := config.GetConfig()
 	router := newRouter()
-	return http.ListenAndServe(fmt.Sprintf(`%s:%s`, cnf.HttpUrl, cnf.HttpPort), router)
+	return http.ListenAndServe(fmt.Sprintf(`%s:%s`, cnf.HTTPURL, cnf.HTTPPort), router)
 }
