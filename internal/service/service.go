@@ -4,16 +4,23 @@ import (
 	"crypto/sha1"
 
 	"github.com/zhedevops/shortlink/internal/model"
+	"github.com/zhedevops/shortlink/internal/repository"
 )
 
 // 52 буквы
 const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-var store = make(map[string]string)
+type Service struct {
+	repo repository.Repository
+}
 
-func CreateShortLink(urlStr string) *model.Links {
+func NewService(r repository.Repository) *Service {
+	return &Service{repo: r}
+}
+
+func (srv *Service) CreateShortLink(urlStr string) *model.Links {
 	id := getShort(urlStr)
-	store[id] = urlStr
+	srv.repo.SetShortURL(id, urlStr)
 	return model.NewLinks(urlStr, id)
 }
 
@@ -27,7 +34,6 @@ func getShort(url string) string {
 	return string(res)
 }
 
-func GetOriginalURL(id string) (string, bool) {
-	url, ok := store[id]
-	return url, ok
+func (srv *Service) GetOriginalURL(id string) (string, bool) {
+	return srv.repo.GetOriginalURL(id)
 }

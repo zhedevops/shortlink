@@ -6,12 +6,17 @@ import (
 
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/handler"
+	"github.com/zhedevops/shortlink/internal/service"
+	"github.com/zhedevops/shortlink/internal/storage"
 )
 
 func newRouter() *http.ServeMux {
+	ms := storage.NewMemoryStorage()
+	srv := service.NewService(ms)
+	h := handler.NewHandler(srv)
 	mux := http.NewServeMux()
-	mux.HandleFunc("/{id}", handler.GetLinkByIDHandler)
-	mux.HandleFunc("/", handler.MainHandler)
+	mux.HandleFunc("/{id}", h.GetLinkByIDHandler)
+	mux.HandleFunc("/", h.MainHandler)
 	return mux
 }
 

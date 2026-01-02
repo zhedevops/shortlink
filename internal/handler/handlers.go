@@ -12,7 +12,15 @@ import (
 	"github.com/zhedevops/shortlink/internal/service"
 )
 
-func MainHandler(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	service *service.Service
+}
+
+func NewHandler(s *service.Service) *Handler {
+	return &Handler{service: s}
+}
+
+func (h *Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "expected POST method", http.StatusBadRequest)
 		return
@@ -42,7 +50,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link := service.CreateShortLink(urlStr)
+	link := h.service.CreateShortLink(urlStr)
 	cnf := config.GetConfig()
 	resp := fmt.Sprintf("http://%s:%s/%s", cnf.HTTPURL, cnf.HTTPPort, link.ID)
 	w.Header().Set("Content-Type", "text/plain")
@@ -53,13 +61,18 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "expected GET method", http.StatusBadRequest)
 		return
 	}
+
 	id := r.URL.Path[1:]
-	urlStr, ok := service.GetOriginalURL(id)
+	if len(id) != 8 {
+		http.Error(w, "unexpected length id", http.StatusBadRequest)
+		return
+	}
+	urlStr, ok := h.service.GetOriginalURL(id)
 	if !ok {
 		http.Error(w, "url not found", http.StatusBadRequest)
 		return
