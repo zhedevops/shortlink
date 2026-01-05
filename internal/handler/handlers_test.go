@@ -7,8 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zhedevops/shortlink/internal/middleware"
 	"github.com/zhedevops/shortlink/internal/service"
 	"github.com/zhedevops/shortlink/internal/storage"
 )
@@ -17,6 +19,12 @@ func TestMainHandler(t *testing.T) {
 	ms := storage.NewMemoryStorage()
 	srv := service.NewService(ms)
 	h := &Handler{service: srv}
+	r := chi.NewRouter()
+	r.With(
+		middleware.RequireMethod(http.MethodPost),
+		middleware.RequireContentType("text/plain"),
+	).HandleFunc("/", h.MainHandler)
+
 	type want struct {
 		code        int
 		response    string
@@ -76,7 +84,7 @@ func TestMainHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "empty body",
+			name: "empty url",
 			args: args{
 				method:      http.MethodPost,
 				target:      "/",
@@ -85,7 +93,7 @@ func TestMainHandler(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusBadRequest,
-				response:    "empty body",
+				response:    "empty url",
 				contentType: "text/plain",
 			},
 		},
@@ -123,7 +131,7 @@ func TestMainHandler(t *testing.T) {
 			request := httptest.NewRequest(tt.args.method, tt.args.target, strings.NewReader(tt.args.body))
 			request.Header.Add("Content-Type", tt.args.contentType)
 			w := httptest.NewRecorder()
-			h.MainHandler(w, request)
+			r.ServeHTTP(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)
@@ -143,10 +151,13 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	ms := storage.NewMemoryStorage()
 	srv := service.NewService(ms)
 	h := &Handler{service: srv}
-	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ria.ru/"))
-	request.Header.Add("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
-	h.MainHandler(w, request)
+	shortID := "ZMFazWTA"
+	originalURL := "https://ria.ru/"
+	ms.Store[shortID] = originalURL
+
+	r := chi.NewRouter()
+	r.With(middleware.RequireMethod(http.MethodGet)).HandleFunc("/{id}", h.GetLinkByIDHandler)
+
 	type want struct {
 		code     int
 		response string
@@ -166,20 +177,20 @@ func TestGetLinkByIDHandler(t *testing.T) {
 			name: "MethodGet result success",
 			args: args{
 				method:      http.MethodGet,
-				target:      "/ZMFazWTA",
+				target:      "/" + shortID,
 				contentType: "text/plain",
 			},
 			want: want{
 				code:     http.StatusTemporaryRedirect,
 				response: "",
-				location: "https://ria.ru/",
+				location: originalURL,
 			},
 		},
 		{
 			name: "expected GET method",
 			args: args{
 				method:      http.MethodPost,
-				target:      "/ZMFazWTA",
+				target:      "/" + shortID,
 				contentType: "text/plain",
 			},
 			want: want{
@@ -220,7 +231,7 @@ func TestGetLinkByIDHandler(t *testing.T) {
 			request := httptest.NewRequest(tt.args.method, tt.args.target, nil)
 			request.Header.Add("Content-Type", tt.args.contentType)
 			w := httptest.NewRecorder()
-			h.GetLinkByIDHandler(w, request)
+			r.ServeHTTP(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tt.want.code, res.StatusCode)

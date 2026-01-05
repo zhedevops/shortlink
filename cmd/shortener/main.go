@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 
+	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/router"
+	"github.com/zhedevops/shortlink/internal/service"
+	"github.com/zhedevops/shortlink/internal/storage"
 )
 
 func main() {
@@ -13,5 +16,8 @@ func main() {
 }
 
 func run() error {
-	return router.Serve()
+	ms := storage.NewMemoryStorage()
+	srv := service.NewService(ms)
+	h := handler.NewHandler(srv)
+	return router.Serve(h)
 }

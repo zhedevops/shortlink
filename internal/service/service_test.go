@@ -13,22 +13,32 @@ func TestServiceFuncs(t *testing.T) {
 	url := "https://example.com"
 
 	t.Run("test CreateShortLink from url", func(t *testing.T) {
-		link := srv.CreateShortLink(url)
+		link, err := srv.CreateShortLink(url)
+		assert.Nil(t, err)
 		assert.NotNil(t, link)
 		assert.Equal(t, url, link.URL)
 		assert.Len(t, link.ID, 8)
 	})
 
 	t.Run("success test GetOriginalURL", func(t *testing.T) {
-		link := srv.CreateShortLink(url)
-		gotURL, ok := srv.GetOriginalURL(link.ID)
-		assert.True(t, ok)
+		link, err := srv.CreateShortLink(url)
+		assert.Nil(t, err)
+		gotURL, err := srv.GetOriginalURL(link.ID)
+		assert.Nil(t, err)
 		assert.Equal(t, url, gotURL)
 	})
 
+	t.Run("failure length test GetOriginalURL", func(t *testing.T) {
+		gotURL, err := srv.GetOriginalURL("ZZZZ")
+		assert.NotNil(t, err)
+		assert.Equal(t, "unexpected length id", err.Error())
+		assert.Empty(t, gotURL)
+	})
+
 	t.Run("failure test GetOriginalURL", func(t *testing.T) {
-		gotURL, ok := srv.GetOriginalURL("ZZZZZZZZ")
-		assert.False(t, ok)
+		gotURL, err := srv.GetOriginalURL("ZZZZZZZZ")
+		assert.NotNil(t, err)
+		assert.Equal(t, "url not found", err.Error())
 		assert.Empty(t, gotURL)
 	})
 }
