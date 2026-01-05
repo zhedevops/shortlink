@@ -12,11 +12,11 @@ import (
 
 func NewRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
+	r.With(middleware.RequireMethod(http.MethodGet)).Get("/{id}", h.GetLinkByIDHandler)
 	r.With(
-		middleware.RequireMethod(http.MethodGet),
+		middleware.RequireMethod(http.MethodPost),
 		middleware.RequireContentType("text/plain"),
-	).Get("/{id}", h.GetLinkByIDHandler)
-	r.With(middleware.RequireMethod(http.MethodPost)).Post("/", h.MainHandler)
+	).Post("/", h.MainHandler)
 	return r
 }
 
