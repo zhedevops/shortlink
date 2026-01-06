@@ -30,8 +30,8 @@ func (h *Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	cnf := config.GetConfig()
-	resp := fmt.Sprintf("http://%s:%s/%s", cnf.HTTPURL, cnf.HTTPPort, link.ID)
+	cnf := config.GetConfig("response")
+	resp := fmt.Sprintf("http://%s:%s/%s", cnf.Host, cnf.Port, link.ID)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))

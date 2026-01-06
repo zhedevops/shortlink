@@ -21,7 +21,8 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 }
 
 func Serve(h *handler.Handler) error {
-	cnf := config.GetConfig()
+	config.SetConfigByFlag()
+	cnf := config.GetConfig("server")
 	router := NewRouter(h)
-	return http.ListenAndServe(fmt.Sprintf(`%s:%s`, cnf.HTTPURL, cnf.HTTPPort), router)
+	return http.ListenAndServe(fmt.Sprintf(`%s:%s`, cnf.Host, cnf.Port), router)
 }
