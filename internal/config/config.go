@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"flag"
+	"net/url"
 	"os"
 	"strings"
 
@@ -10,8 +11,9 @@ import (
 )
 
 type NetAddress struct {
-	Host string
-	Port string
+	Protocol string
+	Host     string
+	Port     string
 }
 
 type Config struct {
@@ -24,8 +26,9 @@ var cfg = &Config{
 	ResponseAddr: &NetAddress{},
 }
 var defaultAddress = &NetAddress{
-	Host: "localhost",
-	Port: "8080",
+	Protocol: "http",
+	Host:     "localhost",
+	Port:     "8080",
 }
 
 func (addr *NetAddress) String() string {
@@ -33,16 +36,22 @@ func (addr *NetAddress) String() string {
 }
 
 func (addr *NetAddress) Set(flagVal string) error {
-	v := strings.Split(flagVal, ":")
-	if len(v) != 2 {
-		return errors.New("need address in a form host:port")
+	if !strings.Contains(flagVal, "://") {
+		flagVal = "http://" + flagVal
 	}
-	host := strings.TrimSpace(v[0])
-	port := strings.TrimSpace(v[1])
+	u, err := url.Parse(flagVal)
+	if err != nil {
+		return errors.New("need url in a form protocol:host:port")
+	}
+	protocol := u.Scheme
+	host := u.Hostname()
+	port := u.Port()
 
 	if host == "" || port == "" {
 		return errors.New("host or port is empty")
 	}
+
+	addr.Protocol = protocol
 	addr.Host = host
 	addr.Port = port
 
@@ -73,6 +82,6 @@ func GetConfig(typeAddr string) *NetAddress {
 
 func SetConfigByFlag() {
 	flag.Var(cfg.Server, "a", "server address host:port")
-	flag.Var(cfg.ResponseAddr, "b", "server response base address host:port")
+	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
 	flag.Parse()
 }

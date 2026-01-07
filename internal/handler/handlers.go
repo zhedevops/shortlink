@@ -31,7 +31,10 @@ func (h *Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cnf := config.GetConfig("response")
-	resp := fmt.Sprintf("http://%s:%s/%s", cnf.Host, cnf.Port, link.ID)
+	if cnf.Protocol == "" {
+		cnf.Protocol = "http"
+	}
+	resp := fmt.Sprintf("%s://%s:%s/%s", cnf.Protocol, cnf.Host, cnf.Port, link.ID)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))
