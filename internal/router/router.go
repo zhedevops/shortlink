@@ -5,24 +5,18 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/middleware"
 )
 
 func NewRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
-	r.With(middleware.RequireMethod(http.MethodGet)).Get("/{id}", h.GetLinkByIDHandler)
-	r.With(
-		middleware.RequireMethod(http.MethodPost),
-		middleware.RequireContentType("text/plain"),
-	).Post("/", h.MainHandler)
+	r.Get("/{id}", h.GetLinkByIDHandler)
+	r.With(middleware.RequireContentType("text/plain")).Post("/", h.CreateShortLinkHandler)
 	return r
 }
 
 func Serve(h *handler.Handler) error {
-	config.SetConfigByFlag()
-	cnf := config.GetConfig("server")
 	router := NewRouter(h)
-	return http.ListenAndServe(fmt.Sprintf(`%s:%s`, cnf.Host, cnf.Port), router)
+	return http.ListenAndServe(fmt.Sprintf(`%s:%s`, h.Cfg.Server.Host, h.Cfg.Server.Port), router)
 }

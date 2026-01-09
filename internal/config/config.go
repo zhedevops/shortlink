@@ -22,10 +22,15 @@ type Config struct {
 }
 
 var cfg = &Config{
-	Server:       &NetAddress{},
-	ResponseAddr: &NetAddress{},
+	Server:       defaultServerAddress,
+	ResponseAddr: defaultResponseAddress,
 }
-var defaultAddress = &NetAddress{
+var defaultServerAddress = &NetAddress{
+	Protocol: "http",
+	Host:     "localhost",
+	Port:     "8080",
+}
+var defaultResponseAddress = &NetAddress{
 	Protocol: "http",
 	Host:     "localhost",
 	Port:     "8080",
@@ -58,26 +63,17 @@ func (addr *NetAddress) Set(flagVal string) error {
 	return nil
 }
 
-func GetConfig(typeAddr string) *NetAddress {
-	switch typeAddr {
-	case "server":
-		if cfg.Server.Host != "" && cfg.Server.Port != "" {
-			return cfg.Server
-		}
-	case "response":
-		if cfg.ResponseAddr.Host != "" && cfg.ResponseAddr.Port != "" {
-			return cfg.ResponseAddr
-		}
+func GetConfig() *Config {
+	if err := godotenv.Load(".env"); err == nil {
+		host, _ := os.LookupEnv("SHORTLINK_HTTP_URL")
+		port, _ := os.LookupEnv("SHORTLINK_HTTP_PORT")
+		cfg.Server.Host = host
+		cfg.Server.Port = port
 	}
 
-	if err := godotenv.Load(".env"); err != nil {
-		return defaultAddress
-	}
+	SetConfigByFlag()
 
-	return &NetAddress{
-		Host: os.Getenv("SHORTLINK_HTTP_URL"),
-		Port: os.Getenv("SHORTLINK_HTTP_PORT"),
-	}
+	return cfg
 }
 
 func SetConfigByFlag() {

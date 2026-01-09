@@ -10,20 +10,22 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/middleware"
 	"github.com/zhedevops/shortlink/internal/service"
 	"github.com/zhedevops/shortlink/internal/storage"
 )
 
-func TestMainHandler(t *testing.T) {
+func TestCreateShortLinkHandler(t *testing.T) {
+	cnf := config.GetConfig()
 	ms := storage.NewMemoryStorage()
 	srv := service.NewService(ms)
-	h := &Handler{service: srv}
+	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.With(
 		middleware.RequireMethod(http.MethodPost),
 		middleware.RequireContentType("text/plain"),
-	).HandleFunc("/", h.MainHandler)
+	).HandleFunc("/", h.CreateShortLinkHandler)
 
 	type want struct {
 		code        int
@@ -92,7 +94,7 @@ func TestMainHandler(t *testing.T) {
 				contentType: "text/plain",
 			},
 			want: want{
-				code:        http.StatusBadRequest,
+				code:        http.StatusInternalServerError,
 				response:    "empty url",
 				contentType: "text/plain",
 			},
@@ -106,7 +108,7 @@ func TestMainHandler(t *testing.T) {
 				contentType: "text/plain",
 			},
 			want: want{
-				code:        http.StatusBadRequest,
+				code:        http.StatusInternalServerError,
 				response:    "invalid url",
 				contentType: "text/plain",
 			},
@@ -120,7 +122,7 @@ func TestMainHandler(t *testing.T) {
 				contentType: "text/plain",
 			},
 			want: want{
-				code:        http.StatusBadRequest,
+				code:        http.StatusInternalServerError,
 				response:    "unsupported scheme",
 				contentType: "text/plain",
 			},

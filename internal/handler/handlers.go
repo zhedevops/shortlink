@@ -13,13 +13,17 @@ import (
 
 type Handler struct {
 	service *service.Service
+	Cfg     *config.Config
 }
 
-func NewHandler(s *service.Service) *Handler {
-	return &Handler{service: s}
+func NewHandler(s *service.Service, cnf *config.Config) *Handler {
+	return &Handler{
+		service: s,
+		Cfg:     cnf,
+	}
 }
 
-func (h *Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "cannot read body", http.StatusBadRequest)
@@ -27,14 +31,10 @@ func (h *Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	link, err := h.service.CreateShortLink(string(body))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	cnf := config.GetConfig("response")
-	if cnf.Protocol == "" {
-		cnf.Protocol = "http"
-	}
-	resp := fmt.Sprintf("%s://%s:%s/%s", cnf.Protocol, cnf.Host, cnf.Port, link.ID)
+	resp := fmt.Sprintf("%s://%s:%s/%s", h.Cfg.ResponseAddr.Protocol, h.Cfg.ResponseAddr.Host, h.Cfg.ResponseAddr.Port, link.ID)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))

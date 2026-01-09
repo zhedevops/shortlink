@@ -3,8 +3,10 @@ package service
 import (
 	"crypto/sha1"
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/repository"
@@ -28,32 +30,42 @@ func (srv *Service) CreateShortLink(urlStr string) (*model.Links, error) {
 	}
 	u, err := url.ParseRequestURI(urlStr)
 	if err != nil {
-		return nil, errors.New("invalid url")
+		return nil, fmt.Errorf("invalid url: %w", err)
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, errors.New("unsupported scheme")
+		return nil, fmt.Errorf("unsupported scheme %s", u.Scheme)
 	}
-	id := getShort(urlStr)
+	existingID := srv.repo.CheckIDByURL(urlStr)
+	if existingID != "" {
+		return model.NewLinks(urlStr, existingID), nil
+	}
+	id := srv.getShort(urlStr)
 	srv.repo.SetShortURL(id, urlStr)
 	return model.NewLinks(urlStr, id), nil
 }
 
-func getShort(url string) string {
+func (srv *Service) getShort(url string) string {
 	hash := sha1.Sum([]byte(url))
 	b := hash[:8]
 	res := make([]byte, 8)
 	for i := 0; i < 8; i++ {
 		res[i] = chars[b[i]%52]
 	}
-	return string(res)
+	strID := string(res)
+	existingURL := srv.repo.GetOriginalURL(strID)
+	if existingURL != "" && existingURL != url {
+		ns := fmt.Sprintf("%d", time.Now().UnixNano())
+		return srv.getShort(url + ns)
+	}
+	return strID
 }
 
 func (srv *Service) GetOriginalURL(id string) (string, error) {
 	if len(id) != 8 {
 		return "", errors.New("unexpected length id")
 	}
-	origURL, ok := srv.repo.GetOriginalURL(id)
-	if !ok {
+	origURL := srv.repo.GetOriginalURL(id)
+	if origURL == "" {
 		return "", errors.New("url not found")
 	}
 	return origURL, nil
