@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 
 // 52 буквы
 const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const maxAttempts = 5
 
 type Service struct {
 	repo repository.Repository
@@ -39,12 +41,18 @@ func (srv *Service) CreateShortLink(urlStr string) (*model.Links, error) {
 	if existingID != "" {
 		return model.NewLinks(urlStr, existingID), nil
 	}
-	id := srv.getShort(urlStr)
+	id, err := srv.getShort(urlStr, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed create short link: %w", err)
+	}
 	srv.repo.SetShortURL(id, urlStr)
 	return model.NewLinks(urlStr, id), nil
 }
 
-func (srv *Service) getShort(url string) string {
+func (srv *Service) getShort(url string, attempt int) (string, error) {
+	if attempt >= maxAttempts {
+		return "", errors.New("failed to generate unique short url with max attempts")
+	}
 	hash := sha1.Sum([]byte(url))
 	b := hash[:8]
 	res := make([]byte, 8)
@@ -54,10 +62,10 @@ func (srv *Service) getShort(url string) string {
 	strID := string(res)
 	existingURL := srv.repo.GetOriginalURL(strID)
 	if existingURL != "" && existingURL != url {
-		ns := fmt.Sprintf("%d", time.Now().UnixNano())
-		return srv.getShort(url + ns)
+		ns := strconv.FormatInt(time.Now().UnixNano(), 10)
+		return srv.getShort(url+ns, attempt+1)
 	}
-	return strID
+	return strID, nil
 }
 
 func (srv *Service) GetOriginalURL(id string) (string, error) {
