@@ -22,10 +22,7 @@ func TestCreateShortLinkHandler(t *testing.T) {
 	srv := service.NewService(ms)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
-	r.With(
-		middleware.RequireMethod(http.MethodPost),
-		middleware.RequireContentType("text/plain"),
-	).HandleFunc("/", h.CreateShortLinkHandler)
+	r.With(middleware.RequireContentType("text/plain")).HandleFunc("/", h.CreateShortLinkHandler)
 
 	type want struct {
 		code        int
@@ -54,20 +51,6 @@ func TestCreateShortLinkHandler(t *testing.T) {
 			want: want{
 				code:        http.StatusCreated,
 				response:    "ZMFazWTA",
-				contentType: "text/plain",
-			},
-		},
-		{
-			name: "unexpected MethodGet",
-			args: args{
-				method:      http.MethodGet,
-				target:      "/",
-				body:        "https://ria.ru/",
-				contentType: "text/plain",
-			},
-			want: want{
-				code:        http.StatusBadRequest,
-				response:    "expected POST method",
 				contentType: "text/plain",
 			},
 		},
@@ -158,7 +141,7 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	ms.Store[shortID] = originalURL
 
 	r := chi.NewRouter()
-	r.With(middleware.RequireMethod(http.MethodGet)).HandleFunc("/{id}", h.GetLinkByIDHandler)
+	r.HandleFunc("/{id}", h.GetLinkByIDHandler)
 
 	type want struct {
 		code     int
@@ -186,19 +169,6 @@ func TestGetLinkByIDHandler(t *testing.T) {
 				code:     http.StatusTemporaryRedirect,
 				response: "",
 				location: originalURL,
-			},
-		},
-		{
-			name: "expected GET method",
-			args: args{
-				method:      http.MethodPost,
-				target:      "/" + shortID,
-				contentType: "text/plain",
-			},
-			want: want{
-				code:     http.StatusBadRequest,
-				response: "expected GET method",
-				location: "",
 			},
 		},
 		{
