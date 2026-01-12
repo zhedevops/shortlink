@@ -3,46 +3,43 @@ package config
 import (
 	"errors"
 	"flag"
+	"log"
 	"net/url"
-	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
+	"github.com/caarlos0/env/v6"
 )
 
-type NetAddress struct {
-	Protocol string
-	Host     string
-	Port     string
+var scheme = "http://"
+var defaultAddress = "localhost:8080"
+
+type netAddress struct {
+	ServerAddress string
+	withScheme    bool
+}
+
+type EnvParams struct {
+	ServerAddr   string `env:"SERVER_ADDRESS"`
+	ResponseAddr string `env:"BASE_URL"`
 }
 
 type Config struct {
-	Server       *NetAddress
-	ResponseAddr *NetAddress
+	ServerAddr   *netAddress
+	ResponseAddr *netAddress
 }
 
 var cfg = &Config{
-	Server:       defaultServerAddress,
-	ResponseAddr: defaultResponseAddress,
-}
-var defaultServerAddress = &NetAddress{
-	Protocol: "http",
-	Host:     "localhost",
-	Port:     "8080",
-}
-var defaultResponseAddress = &NetAddress{
-	Protocol: "http",
-	Host:     "localhost",
-	Port:     "8080",
+	ServerAddr:   &netAddress{ServerAddress: defaultAddress, withScheme: false},
+	ResponseAddr: &netAddress{ServerAddress: scheme + defaultAddress, withScheme: true},
 }
 
-func (addr *NetAddress) String() string {
-	return addr.Host + ":" + addr.Port
+func (addr *netAddress) String() string {
+	return addr.ServerAddress
 }
 
-func (addr *NetAddress) Set(flagVal string) error {
+func (addr *netAddress) Set(flagVal string) error {
 	if !strings.Contains(flagVal, "://") {
-		flagVal = "http://" + flagVal
+		flagVal = scheme + flagVal
 	}
 	u, err := url.Parse(flagVal)
 	if err != nil {
@@ -56,28 +53,37 @@ func (addr *NetAddress) Set(flagVal string) error {
 		return errors.New("host or port is empty")
 	}
 
-	addr.Protocol = protocol
-	addr.Host = host
-	addr.Port = port
-
+	addr.ServerAddress = host + ":" + port
+	if addr.withScheme {
+		addr.ServerAddress = protocol + "://" + addr.ServerAddress
+	}
 	return nil
 }
 
 func GetConfig() *Config {
-	if err := godotenv.Load(".env"); err == nil {
-		host, _ := os.LookupEnv("SHORTLINK_HTTP_URL")
-		port, _ := os.LookupEnv("SHORTLINK_HTTP_PORT")
-		cfg.Server.Host = host
-		cfg.Server.Port = port
-	}
-
 	SetConfigByFlag()
+	parseEnvParams()
 
 	return cfg
 }
 
+func parseEnvParams() {
+	var params EnvParams
+	err := env.Parse(&params)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if params.ServerAddr != "" {
+		cfg.ServerAddr.ServerAddress = params.ServerAddr
+	}
+	if params.ResponseAddr != "" {
+		cfg.ResponseAddr.ServerAddress = params.ResponseAddr
+	}
+}
+
 func SetConfigByFlag() {
-	flag.Var(cfg.Server, "a", "server address host:port")
+	flag.Var(cfg.ServerAddr, "a", "server address host:port")
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
 	flag.Parse()
 }

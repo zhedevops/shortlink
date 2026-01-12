@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -18,5 +17,5 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 
 func Serve(h *handler.Handler) error {
 	router := NewRouter(h)
-	return http.ListenAndServe(fmt.Sprintf(`%s:%s`, h.Cfg.Server.Host, h.Cfg.Server.Port), router)
+	return http.ListenAndServe(h.Cfg.ServerAddr.ServerAddress, router)
 }

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -34,7 +33,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	resp := fmt.Sprintf("%s://%s:%s/%s", h.Cfg.ResponseAddr.Protocol, h.Cfg.ResponseAddr.Host, h.Cfg.ResponseAddr.Port, link.ID)
+	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ID
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))
