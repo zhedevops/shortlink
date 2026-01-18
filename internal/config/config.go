@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/joho/godotenv"
 )
 
 var scheme = "http://"
@@ -21,11 +22,13 @@ type netAddress struct {
 type EnvParams struct {
 	ServerAddr   string `env:"SERVER_ADDRESS"`
 	ResponseAddr string `env:"BASE_URL"`
+	LogLevel     string `env:"LOG_LEVEL" envDefault:"info"`
 }
 
 type Config struct {
 	ServerAddr   *netAddress
 	ResponseAddr *netAddress
+	LogLevel     string
 }
 
 var cfg = &Config{
@@ -68,6 +71,7 @@ func GetConfig() *Config {
 }
 
 func parseEnvParams() {
+	_ = godotenv.Load(".env")
 	var params EnvParams
 	err := env.Parse(&params)
 	if err != nil {
@@ -80,10 +84,14 @@ func parseEnvParams() {
 	if params.ResponseAddr != "" {
 		cfg.ResponseAddr.ServerAddress = params.ResponseAddr
 	}
+	if params.LogLevel != "" {
+		cfg.LogLevel = params.LogLevel
+	}
 }
 
 func SetConfigByFlag() {
 	flag.Var(cfg.ServerAddr, "a", "server address host:port")
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
+	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
 	flag.Parse()
 }

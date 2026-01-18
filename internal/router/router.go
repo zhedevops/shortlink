@@ -10,6 +10,7 @@ import (
 
 func NewRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 	r.Get("/{id}", h.GetLinkByIDHandler)
 	r.With(middleware.RequireContentType("text/plain")).Post("/", h.CreateShortLinkHandler)
 	return r

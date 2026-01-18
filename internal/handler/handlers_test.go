@@ -22,6 +22,7 @@ func TestCreateShortLinkHandler(t *testing.T) {
 	srv := service.NewService(ms)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 	r.With(middleware.RequireContentType("text/plain")).HandleFunc("/", h.CreateShortLinkHandler)
 
 	type want struct {

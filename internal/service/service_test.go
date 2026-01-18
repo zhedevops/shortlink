@@ -28,6 +28,12 @@ func TestServiceFuncs(t *testing.T) {
 		assert.Equal(t, url, gotURL)
 	})
 
+	t.Run("success test getShort", func(t *testing.T) {
+		id, err := srv.getShort("http://test.com", 0)
+		assert.Nil(t, err)
+		assert.Equal(t, "CZAqzwap", id)
+	})
+
 	t.Run("failure length test GetOriginalURL", func(t *testing.T) {
 		gotURL, err := srv.GetOriginalURL("ZZZZ")
 		assert.NotNil(t, err)
