@@ -223,7 +223,7 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	}
 }
 
-func TestCreateShortLinkJsonHandler(t *testing.T) {
+func TestCreateShortLinkEncHandler(t *testing.T) {
 	cnf := config.GetConfig()
 	var target = "/api/shorten"
 	respLink := cnf.ResponseAddr.ServerAddress + "/CSaEMooR"
@@ -239,7 +239,7 @@ func TestCreateShortLinkJsonHandler(t *testing.T) {
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.With(middleware.RequireContentType("application/json")).HandleFunc(target, h.CreateShortLinkJsonHandler)
+	r.With(middleware.RequireContentType("application/json")).HandleFunc(target, h.CreateShortLinkEncHandler)
 
 	type want struct {
 		code        int

@@ -44,7 +44,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (h *Handler) CreateShortLinkJsonHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Request) {
 	var req model.Request
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
