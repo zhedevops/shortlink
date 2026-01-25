@@ -51,7 +51,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
 		return
 	}
-	link, err := h.service.CreateShortLink(req.Url)
+	link, err := h.service.CreateShortLink(req.URL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

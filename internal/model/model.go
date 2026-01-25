@@ -6,7 +6,7 @@ type Links struct {
 }
 
 type Request struct {
-	Url string `json:"url,required"`
+	URL string `json:"url"`
 }
 
 type Response struct {
