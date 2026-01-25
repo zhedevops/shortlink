@@ -18,6 +18,7 @@ func main() {
 }
 
 func run() error {
+	config.SetConfig()
 	cnf := config.GetConfig()
 	if err := logger.Initialize(cnf.LogLevel); err != nil {
 		return err

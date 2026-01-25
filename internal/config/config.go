@@ -63,10 +63,12 @@ func (addr *netAddress) Set(flagVal string) error {
 	return nil
 }
 
-func GetConfig() *Config {
+func SetConfig() {
 	SetConfigByFlag()
 	parseEnvParams()
+}
 
+func GetConfig() *Config {
 	return cfg
 }
 
