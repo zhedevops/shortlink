@@ -10,7 +10,7 @@ import (
 
 func NewRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(middleware.Logger, middleware.GzipHandle)
 	r.Get("/{id}", h.GetLinkByIDHandler)
 	r.With(middleware.RequireContentType("text/plain")).Post("/", h.CreateShortLinkHandler)
 	r.With(middleware.RequireContentType("application/json")).Post("/api/shorten", h.CreateShortLinkEncHandler)
