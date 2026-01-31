@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -21,8 +22,13 @@ import (
 
 func TestCreateShortLinkHandler(t *testing.T) {
 	cnf := config.GetConfig()
-	ms := storage.NewMemoryStorage()
-	srv := service.NewService(ms)
+	fileName := "../../data/files/defaultpath/test.json"
+	defer func() {
+		_ = os.Remove(fileName)
+	}()
+	fs, err := storage.NewFileStorage(fileName)
+	assert.Nil(t, err)
+	srv := service.NewService(fs)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.GzipHandle)
@@ -137,12 +143,18 @@ func TestCreateShortLinkHandler(t *testing.T) {
 }
 
 func TestGetLinkByIDHandler(t *testing.T) {
-	ms := storage.NewMemoryStorage()
-	srv := service.NewService(ms)
+	fileName := "../../data/files/defaultpath/test.json"
+	defer func() {
+		_ = os.Remove(fileName)
+	}()
+	fs, err := storage.NewFileStorage(fileName)
+	assert.Nil(t, err)
+	srv := service.NewService(fs)
 	h := &Handler{service: srv}
 	shortID := "ZMFazWTA"
 	originalURL := "https://ria.ru/"
-	ms.Store[shortID] = originalURL
+	_, err = srv.CreateShortLink(originalURL)
+	assert.Nil(t, err)
 
 	r := chi.NewRouter()
 	r.HandleFunc("/{id}", h.GetLinkByIDHandler)
@@ -234,8 +246,13 @@ func TestCreateShortLinkEncHandler(t *testing.T) {
 	encoder := json.NewEncoder(&buf)
 	err := encoder.Encode(resp)
 	require.NoError(t, err)
-	ms := storage.NewMemoryStorage()
-	srv := service.NewService(ms)
+	fileName := "../../data/files/defaultpath/test.json"
+	defer func() {
+		_ = os.Remove(fileName)
+	}()
+	fs, err := storage.NewFileStorage(fileName)
+	assert.Nil(t, err)
+	srv := service.NewService(fs)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)

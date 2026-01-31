@@ -23,8 +23,11 @@ func run() error {
 	if err := logger.Initialize(cnf.LogLevel); err != nil {
 		return err
 	}
-	ms := storage.NewMemoryStorage()
-	srv := service.NewService(ms)
+	fs, err := storage.NewFileStorage(cnf.FileStoragePath)
+	if err != nil {
+		return err
+	}
+	srv := service.NewService(fs)
 	h := handler.NewHandler(srv, cnf)
 	return router.Serve(h)
 }

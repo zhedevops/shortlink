@@ -20,15 +20,17 @@ type netAddress struct {
 }
 
 type EnvParams struct {
-	ServerAddr   string `env:"SERVER_ADDRESS"`
-	ResponseAddr string `env:"BASE_URL"`
-	LogLevel     string `env:"LOG_LEVEL" envDefault:"info"`
+	ServerAddr      string `env:"SERVER_ADDRESS"`
+	ResponseAddr    string `env:"BASE_URL"`
+	LogLevel        string `env:"LOG_LEVEL" envDefault:"info"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 type Config struct {
-	ServerAddr   *netAddress
-	ResponseAddr *netAddress
-	LogLevel     string
+	ServerAddr      *netAddress
+	ResponseAddr    *netAddress
+	LogLevel        string
+	FileStoragePath string
 }
 
 var cfg = &Config{
@@ -89,11 +91,16 @@ func parseEnvParams() {
 	if params.LogLevel != "" {
 		cfg.LogLevel = params.LogLevel
 	}
+
+	if params.FileStoragePath != "" {
+		cfg.FileStoragePath = params.FileStoragePath
+	}
 }
 
 func SetConfigByFlag() {
 	flag.Var(cfg.ServerAddr, "a", "server address host:port")
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
+	flag.StringVar(&cfg.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
 	flag.Parse()
 }

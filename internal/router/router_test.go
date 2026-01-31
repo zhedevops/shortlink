@@ -3,9 +3,11 @@ package router
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/service"
@@ -14,8 +16,13 @@ import (
 
 func TestNewRouter(t *testing.T) {
 	cnf := config.GetConfig()
-	ms := storage.NewMemoryStorage()
-	srv := service.NewService(ms)
+	fileName := "../../data/files/defaultpath/test.json"
+	defer func() {
+		_ = os.Remove(fileName)
+	}()
+	fs, err := storage.NewFileStorage(fileName)
+	assert.Nil(t, err)
+	srv := service.NewService(fs)
 	h := handler.NewHandler(srv, cnf)
 	r := NewRouter(h)
 
