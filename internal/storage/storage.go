@@ -10,9 +10,9 @@ type FileStorage struct {
 }
 
 type File struct {
-	Uuid         int    `json:"uuid"`
-	Short_URL    string `json:"short_url"`
-	Original_URL string `json:"original_url"`
+	UUID        int    `json:"uuid"`
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 func NewFileStorage(filepath string) (*FileStorage, error) {
@@ -33,9 +33,9 @@ func (fs *FileStorage) SetShortURL(id string, url string) {
 	}
 
 	files = append(files, File{
-		Uuid:         len(files) + 1,
-		Short_URL:    id,
-		Original_URL: url,
+		UUID:        len(files) + 1,
+		ShortURL:    id,
+		OriginalURL: url,
 	})
 
 	data, err := json.MarshalIndent(files, "", "  ")
@@ -61,8 +61,8 @@ func (fs *FileStorage) GetOriginalURL(id string) string {
 	}
 
 	for _, f := range files {
-		if f.Short_URL == id {
-			return f.Original_URL
+		if f.ShortURL == id {
+			return f.OriginalURL
 		}
 	}
 	return ""
@@ -80,8 +80,8 @@ func (fs *FileStorage) CheckIDByURL(url string) string {
 	}
 
 	for _, f := range files {
-		if f.Original_URL == url {
-			return f.Short_URL
+		if f.OriginalURL == url {
+			return f.ShortURL
 		}
 	}
 

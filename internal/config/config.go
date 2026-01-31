@@ -5,6 +5,8 @@ import (
 	"flag"
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/caarlos0/env/v6"
@@ -94,6 +96,15 @@ func parseEnvParams() {
 
 	if params.FileStoragePath != "" {
 		cfg.FileStoragePath = params.FileStoragePath
+	}
+	path, err := filepath.Abs(cfg.FileStoragePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.FileStoragePath = path
+	dir := filepath.Dir(cfg.FileStoragePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Fatal(err)
 	}
 }
 
