@@ -9,7 +9,7 @@ type FileStorage struct {
 	filepath string
 }
 
-type File struct {
+type URLMap struct {
 	UUID        int    `json:"uuid"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
@@ -27,18 +27,18 @@ func (fs *FileStorage) SetShortURL(id string, url string) {
 		return
 	}
 
-	files, err := getFiles(file)
+	usms, err := getURLsMaps(file)
 	if err != nil {
 		return
 	}
 
-	files = append(files, File{
-		UUID:        len(files) + 1,
+	usms = append(usms, URLMap{
+		UUID:        len(usms) + 1,
 		ShortURL:    id,
 		OriginalURL: url,
 	})
 
-	data, err := json.MarshalIndent(files, "", "  ")
+	data, err := json.MarshalIndent(usms, "", "  ")
 	if err != nil {
 		return
 	}
@@ -55,14 +55,14 @@ func (fs *FileStorage) GetOriginalURL(id string) string {
 		return ""
 	}
 
-	files, err := getFiles(file)
+	usms, err := getURLsMaps(file)
 	if err != nil {
 		return ""
 	}
 
-	for _, f := range files {
-		if f.ShortURL == id {
-			return f.OriginalURL
+	for _, um := range usms {
+		if um.ShortURL == id {
+			return um.OriginalURL
 		}
 	}
 	return ""
@@ -74,14 +74,14 @@ func (fs *FileStorage) CheckIDByURL(url string) string {
 		return ""
 	}
 
-	files, err := getFiles(file)
+	usms, err := getURLsMaps(file)
 	if err != nil {
 		return ""
 	}
 
-	for _, f := range files {
-		if f.OriginalURL == url {
-			return f.ShortURL
+	for _, um := range usms {
+		if um.OriginalURL == url {
+			return um.ShortURL
 		}
 	}
 
@@ -99,11 +99,11 @@ func OpenFileStorage(fs *FileStorage) (*os.File, error) {
 	return file, nil
 }
 
-func getFiles(file *os.File) ([]File, error) {
-	var files []File
+func getURLsMaps(file *os.File) ([]URLMap, error) {
+	var usms []URLMap
 	data, err := os.ReadFile(file.Name())
 	if err == nil && len(data) > 0 {
-		err = json.Unmarshal(data, &files)
+		err = json.Unmarshal(data, &usms)
 	}
-	return files, err
+	return usms, err
 }
