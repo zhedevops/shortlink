@@ -22,10 +22,10 @@ type netAddress struct {
 }
 
 type EnvParams struct {
-	ServerAddr      string `env:"SERVER_ADDRESS"`
-	ResponseAddr    string `env:"BASE_URL"`
-	LogLevel        string `env:"LOG_LEVEL" envDefault:"info"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	ServerAddr      *string `env:"SERVER_ADDRESS"`
+	ResponseAddr    *string `env:"BASE_URL"`
+	LogLevel        *string `env:"LOG_LEVEL"`
+	FileStoragePath *string `env:"FILE_STORAGE_PATH"`
 }
 
 type Config struct {
@@ -84,18 +84,18 @@ func parseEnvParams() {
 		log.Fatal(err)
 	}
 
-	if params.ServerAddr != "" {
-		cfg.ServerAddr.ServerAddress = params.ServerAddr
+	if params.ServerAddr != nil {
+		cfg.ServerAddr.ServerAddress = *params.ServerAddr
 	}
-	if params.ResponseAddr != "" {
-		cfg.ResponseAddr.ServerAddress = params.ResponseAddr
+	if params.ResponseAddr != nil {
+		cfg.ResponseAddr.ServerAddress = *params.ResponseAddr
 	}
-	if params.LogLevel != "" {
-		cfg.LogLevel = params.LogLevel
+	if params.LogLevel != nil {
+		cfg.LogLevel = *params.LogLevel
 	}
 
-	if params.FileStoragePath != "" {
-		cfg.FileStoragePath = params.FileStoragePath
+	if params.FileStoragePath != nil {
+		cfg.FileStoragePath = *params.FileStoragePath
 	}
 	path, err := filepath.Abs(cfg.FileStoragePath)
 	if err != nil {
