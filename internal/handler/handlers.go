@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"fmt"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/zhedevops/shortlink/internal/config"
+	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/service"
 )
 
@@ -34,12 +35,36 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	resp := fmt.Sprintf("%s://%s:%s/%s", h.Cfg.ResponseAddr.Protocol, h.Cfg.ResponseAddr.Host, h.Cfg.ResponseAddr.Port, link.ID)
+	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ID
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))
 	if err != nil {
 		log.Printf("failed to write response: %v", err)
+	}
+}
+
+func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Request) {
+	var req model.Request
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&req); err != nil {
+		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
+		return
+	}
+	link, err := h.service.CreateShortLink(req.URL)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	respLink := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ID
+	var resp = model.Response{
+		Result: respLink,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	encoder := json.NewEncoder(w)
+	if err = encoder.Encode(resp); err != nil {
+		log.Printf("error encoding response: %v", err)
 	}
 }
 

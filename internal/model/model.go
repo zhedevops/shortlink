@@ -5,6 +5,14 @@ type Links struct {
 	ID  string
 }
 
+type Request struct {
+	URL string `json:"url"`
+}
+
+type Response struct {
+	Result string `json:"result"`
+}
+
 func NewLinks(url string, id string) *Links {
 	return &Links{
 		URL: url,

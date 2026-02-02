@@ -3,46 +3,50 @@ package config
 import (
 	"errors"
 	"flag"
+	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/joho/godotenv"
 )
 
-type NetAddress struct {
-	Protocol string
-	Host     string
-	Port     string
+var scheme = "http://"
+var defaultAddress = "localhost:8080"
+
+type netAddress struct {
+	ServerAddress string
+	withScheme    bool
+}
+
+type EnvParams struct {
+	ServerAddr      *string `env:"SERVER_ADDRESS"`
+	ResponseAddr    *string `env:"BASE_URL"`
+	LogLevel        *string `env:"LOG_LEVEL"`
+	FileStoragePath *string `env:"FILE_STORAGE_PATH"`
 }
 
 type Config struct {
-	Server       *NetAddress
-	ResponseAddr *NetAddress
+	ServerAddr      *netAddress
+	ResponseAddr    *netAddress
+	LogLevel        string
+	FileStoragePath string
 }
 
 var cfg = &Config{
-	Server:       defaultServerAddress,
-	ResponseAddr: defaultResponseAddress,
-}
-var defaultServerAddress = &NetAddress{
-	Protocol: "http",
-	Host:     "localhost",
-	Port:     "8080",
-}
-var defaultResponseAddress = &NetAddress{
-	Protocol: "http",
-	Host:     "localhost",
-	Port:     "8080",
+	ServerAddr:   &netAddress{ServerAddress: defaultAddress, withScheme: false},
+	ResponseAddr: &netAddress{ServerAddress: scheme + defaultAddress, withScheme: true},
 }
 
-func (addr *NetAddress) String() string {
-	return addr.Host + ":" + addr.Port
+func (addr *netAddress) String() string {
+	return addr.ServerAddress
 }
 
-func (addr *NetAddress) Set(flagVal string) error {
+func (addr *netAddress) Set(flagVal string) error {
 	if !strings.Contains(flagVal, "://") {
-		flagVal = "http://" + flagVal
+		flagVal = scheme + flagVal
 	}
 	u, err := url.Parse(flagVal)
 	if err != nil {
@@ -56,28 +60,58 @@ func (addr *NetAddress) Set(flagVal string) error {
 		return errors.New("host or port is empty")
 	}
 
-	addr.Protocol = protocol
-	addr.Host = host
-	addr.Port = port
-
+	addr.ServerAddress = host + ":" + port
+	if addr.withScheme {
+		addr.ServerAddress = protocol + "://" + addr.ServerAddress
+	}
 	return nil
 }
 
-func GetConfig() *Config {
-	if err := godotenv.Load(".env"); err == nil {
-		host, _ := os.LookupEnv("SHORTLINK_HTTP_URL")
-		port, _ := os.LookupEnv("SHORTLINK_HTTP_PORT")
-		cfg.Server.Host = host
-		cfg.Server.Port = port
-	}
-
+func SetConfig() {
 	SetConfigByFlag()
+	parseEnvParams()
+}
 
+func GetConfig() *Config {
 	return cfg
 }
 
+func parseEnvParams() {
+	_ = godotenv.Load(".env")
+	var params EnvParams
+	err := env.Parse(&params)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if params.ServerAddr != nil {
+		cfg.ServerAddr.ServerAddress = *params.ServerAddr
+	}
+	if params.ResponseAddr != nil {
+		cfg.ResponseAddr.ServerAddress = *params.ResponseAddr
+	}
+	if params.LogLevel != nil {
+		cfg.LogLevel = *params.LogLevel
+	}
+
+	if params.FileStoragePath != nil {
+		cfg.FileStoragePath = *params.FileStoragePath
+	}
+	path, err := filepath.Abs(cfg.FileStoragePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.FileStoragePath = path
+	dir := filepath.Dir(cfg.FileStoragePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func SetConfigByFlag() {
-	flag.Var(cfg.Server, "a", "server address host:port")
+	flag.Var(cfg.ServerAddr, "a", "server address host:port")
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
+	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
+	flag.StringVar(&cfg.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
 	flag.Parse()
 }

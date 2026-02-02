@@ -1,28 +1,137 @@
 package storage
 
-type MemoryStorage struct {
-	Store map[string]string
+import (
+	"bufio"
+	"encoding/json"
+	"io"
+	"os"
+)
+
+type FileStorage struct {
+	filepath string
 }
 
-func NewMemoryStorage() *MemoryStorage {
-	return &MemoryStorage{
-		Store: make(map[string]string),
+type URLMap struct {
+	UUID        int    `json:"uuid"`
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
+func NewFileStorage(filepath string) (*FileStorage, error) {
+	return &FileStorage{
+		filepath: filepath,
+	}, nil
+}
+
+func (fs *FileStorage) SetShortURL(id string, url string) error {
+	file, err := os.OpenFile(fs.filepath, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return err
 	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	if _, err = file.Seek(0, 0); err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(file)
+	count := 0
+	for scanner.Scan() {
+		count++
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	var next int
+	if count == 0 {
+		next++
+	} else {
+		next = count - 1
+	}
+
+	um := URLMap{
+		UUID:        next,
+		ShortURL:    id,
+		OriginalURL: url,
+	}
+
+	data, err := json.Marshal(um)
+	if err != nil {
+		return err
+	}
+
+	if next == 1 {
+		_, err = file.WriteString("[\n  ")
+		if err != nil {
+			return err
+		}
+		_, err = file.Write(data)
+		if err != nil {
+			return err
+		}
+		_, err = file.WriteString("\n]")
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	fi, _ := file.Stat()
+	_ = file.Truncate(fi.Size() - 2)
+	_, _ = file.Seek(0, io.SeekEnd)
+	_, _ = file.Write([]byte(",\n  "))
+	_, _ = file.Write(data)
+	_, _ = file.Write([]byte("\n]"))
+
+	return nil
 }
 
-func (ms *MemoryStorage) SetShortURL(id string, url string) {
-	ms.Store[id] = url
-}
+func (fs *FileStorage) GetOriginalURL(id string) string {
+	file, err := os.Open(fs.filepath)
+	if err != nil {
+		return ""
+	}
+	defer func() {
+		_ = file.Close()
+	}()
 
-func (ms *MemoryStorage) GetOriginalURL(id string) string {
-	return ms.Store[id]
-}
-
-func (ms *MemoryStorage) CheckIDByURL(url string) string {
-	for id, origURL := range ms.Store {
-		if origURL == url {
-			return id
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		var um URLMap
+		if err := json.Unmarshal(scanner.Bytes(), &um); err != nil {
+			continue
+		}
+		if um.ShortURL == id {
+			return um.OriginalURL
 		}
 	}
+
+	return ""
+}
+
+func (fs *FileStorage) CheckIDByURL(url string) string {
+	file, err := os.Open(fs.filepath)
+	if err != nil {
+		return ""
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		var um URLMap
+		if err := json.Unmarshal(scanner.Bytes(), &um); err != nil {
+			continue
+		}
+		if um.OriginalURL == url {
+			return um.ShortURL
+		}
+	}
+
 	return ""
 }

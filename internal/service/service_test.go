@@ -1,6 +1,7 @@
 package service
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,8 +9,13 @@ import (
 )
 
 func TestServiceFuncs(t *testing.T) {
-	ms := storage.NewMemoryStorage()
-	srv := NewService(ms)
+	fileName := "../../data/files/defaultpath/test.json"
+	defer func() {
+		_ = os.Remove(fileName)
+	}()
+	fs, err := storage.NewFileStorage(fileName)
+	assert.Nil(t, err)
+	srv := NewService(fs)
 	url := "https://example.com"
 
 	t.Run("test CreateShortLink from url", func(t *testing.T) {
@@ -26,6 +32,12 @@ func TestServiceFuncs(t *testing.T) {
 		gotURL, err := srv.GetOriginalURL(link.ID)
 		assert.Nil(t, err)
 		assert.Equal(t, url, gotURL)
+	})
+
+	t.Run("success test getShort", func(t *testing.T) {
+		id, err := srv.getShort("http://test.com", 0)
+		assert.Nil(t, err)
+		assert.Equal(t, "CZAqzwap", id)
 	})
 
 	t.Run("failure length test GetOriginalURL", func(t *testing.T) {
