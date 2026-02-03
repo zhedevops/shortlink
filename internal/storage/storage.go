@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
 )
 
 type FileStorage struct {
@@ -91,30 +92,15 @@ func (fs *FileStorage) SetShortURL(id string, url string) error {
 }
 
 func (fs *FileStorage) GetOriginalURL(id string) string {
-	file, err := os.Open(fs.filepath)
-	if err != nil {
-		return ""
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		var um URLMap
-		if err := json.Unmarshal(scanner.Bytes(), &um); err != nil {
-			continue
-		}
-		if um.ShortURL == id {
-			return um.OriginalURL
-		}
-	}
-
-	return ""
+	return findMatchingElement(fs.filepath, true, id)
 }
 
 func (fs *FileStorage) CheckIDByURL(url string) string {
-	file, err := os.Open(fs.filepath)
+	return findMatchingElement(fs.filepath, false, url)
+}
+
+func findMatchingElement(filepath string, isShorten bool, searchValue string) string {
+	file, err := os.Open(filepath)
 	if err != nil {
 		return ""
 	}
@@ -124,12 +110,24 @@ func (fs *FileStorage) CheckIDByURL(url string) string {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		var um URLMap
-		if err := json.Unmarshal(scanner.Bytes(), &um); err != nil {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "[" || line == "]" || line == "" {
 			continue
 		}
-		if um.OriginalURL == url {
-			return um.ShortURL
+		line = strings.TrimSuffix(line, ",")
+
+		var um URLMap
+		if err := json.Unmarshal([]byte(line), &um); err != nil {
+			continue
+		}
+		if isShorten {
+			if um.ShortURL == searchValue {
+				return um.OriginalURL
+			}
+		} else {
+			if um.OriginalURL == searchValue {
+				return um.ShortURL
+			}
 		}
 	}
 
