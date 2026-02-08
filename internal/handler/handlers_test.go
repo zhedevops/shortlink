@@ -384,10 +384,10 @@ func TestHandler_PingHandler(t *testing.T) {
 	a := assert.New(t)
 	_ = godotenv.Load("../../.env")
 	dsn, dsnErr := os.LookupEnv("DATABASE_DSN")
-	a.True(dsnErr)
 	if dsn == "" {
 		t.Skip("dns is required")
 	}
+	a.True(dsnErr)
 	cnf := config.GetConfig()
 	fileName := "../../data/files/defaultpath/test.json"
 	defer func() {
