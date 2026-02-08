@@ -382,6 +382,12 @@ func TestCreateShortLinkEncHandler(t *testing.T) {
 
 func TestHandler_PingHandler(t *testing.T) {
 	a := assert.New(t)
+	_ = godotenv.Load("../../.env")
+	dsn, dsnErr := os.LookupEnv("DATABASE_DSN")
+	a.True(dsnErr)
+	if dsn == "" {
+		t.Skip("dns is required")
+	}
 	cnf := config.GetConfig()
 	fileName := "../../data/files/defaultpath/test.json"
 	defer func() {
@@ -395,9 +401,6 @@ func TestHandler_PingHandler(t *testing.T) {
 	r.HandleFunc("/ping", h.PingHandler)
 	t.Run("Pool opened. Ping ok", func(t *testing.T) {
 		// Открываем пул
-		_ = godotenv.Load("../../.env")
-		dsn, dsnErr := os.LookupEnv("DATABASE_DSN")
-		a.True(dsnErr)
 		err := database.ConnectDB(dsn)
 		a.Nil(err)
 		a.NotNil(database.Pool)
