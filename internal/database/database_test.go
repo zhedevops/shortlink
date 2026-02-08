@@ -20,6 +20,9 @@ func TestConnectDBWithDsn(t *testing.T) {
 	a := assert.New(t)
 	_ = godotenv.Load("../../.env")
 	dsn, dsnErr := os.LookupEnv("DATABASE_DSN")
+	if dsn == "" {
+		t.Skip("dns is required")
+	}
 	a.True(dsnErr)
 	err := ConnectDB(dsn)
 	a.Nil(err)
