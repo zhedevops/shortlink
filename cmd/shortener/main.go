@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/zhedevops/shortlink/internal/config"
+	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/logger"
 	"github.com/zhedevops/shortlink/internal/router"
@@ -20,6 +21,10 @@ func main() {
 func run() error {
 	config.SetConfig()
 	cnf := config.GetConfig()
+	if err := database.ConnectDb(cnf.DatabaseDsn); err != nil {
+		return err
+	}
+	defer database.CloseDb()
 	if err := logger.Initialize(cnf.LogLevel); err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,9 +12,12 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zhedevops/shortlink/internal/config"
+	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/middleware"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/service"
@@ -374,4 +378,50 @@ func TestCreateShortLinkEncHandler(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandler_PingHandler(t *testing.T) {
+	a := assert.New(t)
+	cnf := config.GetConfig()
+	fileName := "../../data/files/defaultpath/test.json"
+	defer func() {
+		_ = os.Remove(fileName)
+	}()
+	fs, err := storage.NewFileStorage(fileName)
+	assert.Nil(t, err)
+	srv := service.NewService(fs)
+	h := &Handler{service: srv, Cfg: cnf}
+	r := chi.NewRouter()
+	r.HandleFunc("/ping", h.PingHandler)
+	t.Run("Pool opened. Ping ok", func(t *testing.T) {
+		// Открываем пул
+		_ = godotenv.Load("../../.env")
+		dsn, dsnErr := os.LookupEnv("DATABASE_DSN")
+		a.True(dsnErr)
+		err := database.ConnectDb(dsn)
+		a.Nil(err)
+		a.NotNil(database.Pool)
+		a.IsType(&pgxpool.Pool{}, database.Pool)
+
+		request := httptest.NewRequest(http.MethodGet, "/ping", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, request)
+
+		res := w.Result()
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+	})
+	t.Run("Pool closed. Ping failure", func(t *testing.T) {
+		// Удаляем пул
+		database.Pool.Close()
+		ctx := context.Background()
+		err = database.Pool.Ping(ctx)
+		a.NotNil(err)
+
+		request := httptest.NewRequest(http.MethodGet, "/ping", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, request)
+
+		res := w.Result()
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	})
 }
