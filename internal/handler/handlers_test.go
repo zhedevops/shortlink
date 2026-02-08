@@ -398,7 +398,7 @@ func TestHandler_PingHandler(t *testing.T) {
 		_ = godotenv.Load("../../.env")
 		dsn, dsnErr := os.LookupEnv("DATABASE_DSN")
 		a.True(dsnErr)
-		err := database.ConnectDb(dsn)
+		err := database.ConnectDB(dsn)
 		a.Nil(err)
 		a.NotNil(database.Pool)
 		a.IsType(&pgxpool.Pool{}, database.Pool)
@@ -412,7 +412,7 @@ func TestHandler_PingHandler(t *testing.T) {
 	})
 	t.Run("Pool closed. Ping failure", func(t *testing.T) {
 		// Удаляем пул
-		database.Pool.Close()
+		database.CloseDB()
 		ctx := context.Background()
 		err = database.Pool.Ping(ctx)
 		a.NotNil(err)

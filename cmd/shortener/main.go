@@ -21,10 +21,10 @@ func main() {
 func run() error {
 	config.SetConfig()
 	cnf := config.GetConfig()
-	if err := database.ConnectDb(cnf.DatabaseDsn); err != nil {
+	if err := database.ConnectDB(cnf.DatabaseDsn); err != nil {
 		return err
 	}
-	defer database.CloseDb()
+	defer database.CloseDB()
 	if err := logger.Initialize(cnf.LogLevel); err != nil {
 		return err
 	}

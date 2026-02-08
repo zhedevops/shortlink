@@ -10,7 +10,7 @@ import (
 
 var Pool *pgxpool.Pool
 
-func ConnectDb(dsn string) error {
+func ConnectDB(dsn string) error {
 	if strings.TrimSpace(dsn) == "" {
 		return errors.New("dsn is empty")
 	}
@@ -29,7 +29,7 @@ func ConnectDb(dsn string) error {
 	return nil
 }
 
-func CloseDb() {
+func CloseDB() {
 	if Pool != nil {
 		Pool.Close()
 	}

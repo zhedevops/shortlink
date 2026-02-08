@@ -15,6 +15,7 @@ import (
 
 var scheme = "http://"
 var defaultAddress = "localhost:8080"
+var defaultDsn = "postgres://postgres:password@localhost:5434/postgres"
 
 type netAddress struct {
 	ServerAddress string
@@ -119,6 +120,6 @@ func SetConfigByFlag() {
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
 	flag.StringVar(&cfg.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
-	flag.StringVar(&cfg.DatabaseDsn, "d", "", "db dsn")
+	flag.StringVar(&cfg.DatabaseDsn, "d", defaultDsn, "db dsn")
 	flag.Parse()
 }
