@@ -2,8 +2,6 @@ package database
 
 import (
 	"context"
-	"errors"
-	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -11,10 +9,6 @@ import (
 var Pool *pgxpool.Pool
 
 func ConnectDB(dsn string) error {
-	if strings.TrimSpace(dsn) == "" {
-		return errors.New("dsn is empty")
-	}
-
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {

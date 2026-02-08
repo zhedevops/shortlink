@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/database"
@@ -21,10 +22,13 @@ func main() {
 func run() error {
 	config.SetConfig()
 	cnf := config.GetConfig()
-	if err := database.ConnectDB(cnf.DatabaseDsn); err != nil {
-		return err
+	dsn := strings.TrimSpace(cnf.DatabaseDsn)
+	if dsn != "" {
+		if err := database.ConnectDB(dsn); err != nil {
+			return err
+		}
+		defer database.CloseDB()
 	}
-	defer database.CloseDB()
 	if err := logger.Initialize(cnf.LogLevel); err != nil {
 		return err
 	}

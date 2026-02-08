@@ -409,6 +409,9 @@ func TestHandler_PingHandler(t *testing.T) {
 
 		res := w.Result()
 		assert.Equal(t, http.StatusOK, res.StatusCode)
+		defer func() {
+			_ = res.Body.Close()
+		}()
 	})
 	t.Run("Pool closed. Ping failure", func(t *testing.T) {
 		// Удаляем пул
@@ -423,5 +426,8 @@ func TestHandler_PingHandler(t *testing.T) {
 
 		res := w.Result()
 		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+		defer func() {
+			_ = res.Body.Close()
+		}()
 	})
 }
