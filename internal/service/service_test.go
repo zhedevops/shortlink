@@ -13,8 +13,7 @@ func TestServiceFuncs(t *testing.T) {
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
-	fs, err := storage.NewFileStorage(fileName)
-	assert.Nil(t, err)
+	fs := storage.NewFileStorage(fileName)
 	srv := NewService(fs)
 	url := "https://example.com"
 

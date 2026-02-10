@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/service"
@@ -20,8 +19,7 @@ func TestNewRouter(t *testing.T) {
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
-	fs, err := storage.NewFileStorage(fileName)
-	assert.Nil(t, err)
+	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
 	h := handler.NewHandler(srv, cnf)
 	r := NewRouter(h)

@@ -30,8 +30,7 @@ func TestCreateShortLinkHandler(t *testing.T) {
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
-	fs, err := storage.NewFileStorage(fileName)
-	assert.Nil(t, err)
+	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
@@ -151,13 +150,12 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
-	fs, err := storage.NewFileStorage(fileName)
-	assert.Nil(t, err)
+	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
 	h := &Handler{service: srv}
 	shortID := "ZMFazWTA"
 	originalURL := "https://ria.ru/"
-	_, err = srv.CreateShortLink(originalURL)
+	_, err := srv.CreateShortLink(originalURL)
 	assert.Nil(t, err)
 
 	r := chi.NewRouter()
@@ -254,8 +252,7 @@ func TestCreateShortLinkEncHandler(t *testing.T) {
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
-	fs, err := storage.NewFileStorage(fileName)
-	assert.Nil(t, err)
+	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
@@ -393,8 +390,7 @@ func TestHandler_PingHandler(t *testing.T) {
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
-	fs, err := storage.NewFileStorage(fileName)
-	assert.Nil(t, err)
+	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
@@ -420,7 +416,7 @@ func TestHandler_PingHandler(t *testing.T) {
 		// Удаляем пул
 		database.CloseDB()
 		ctx := context.Background()
-		err = database.Pool.Ping(ctx)
+		err := database.Pool.Ping(ctx)
 		a.NotNil(err)
 
 		request := httptest.NewRequest(http.MethodGet, "/ping", nil)
