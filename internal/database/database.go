@@ -2,11 +2,10 @@ package database
 
 import (
 	"context"
-	"database/sql"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 )
 
 var Pool *pgxpool.Pool
@@ -24,7 +23,7 @@ func ConnectDB(dsn string) error {
 
 	Pool = pool
 
-	if err := InitPostgres(dsn); err != nil {
+	if err = InitPostgres(); err != nil {
 		return err
 	}
 
@@ -37,19 +36,17 @@ func CloseDB() {
 	}
 }
 
-func InitPostgres(dsn string) error {
-	db, err := sql.Open("pgx", dsn)
+func InitPostgres() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
+	defer cancel()
+	_, err := Pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS shortys (
+                         id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                         short_url VARCHAR(8) NOT NULL,
+                         original_url TEXT NOT NULL,
+                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+						)`,
+	)
 	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = db.Close()
-	}()
-
-	if err = goose.SetDialect("postgres"); err != nil {
-		return err
-	}
-	if err = goose.Up(db, "../../migrations"); err != nil {
 		return err
 	}
 
