@@ -6,20 +6,12 @@ import (
 	"io"
 	"os"
 	"strings"
-)
 
-type MemoryStorage struct {
-	Store map[string]string
-}
+	"github.com/zhedevops/shortlink/internal/model"
+)
 
 type FileStorage struct {
 	filepath string
-}
-
-type URLMap struct {
-	UUID        int    `json:"uuid"`
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
 }
 
 func NewFileStorage(filepath string) *FileStorage {
@@ -57,7 +49,7 @@ func (fs *FileStorage) SetShortURL(id string, url string) error {
 		next = count - 1
 	}
 
-	um := URLMap{
+	um := model.URLMap{
 		UUID:        next,
 		ShortURL:    id,
 		OriginalURL: url,
@@ -120,7 +112,7 @@ func findMatchingElement(filepath string, isShorten bool, searchValue string) st
 		}
 		line = strings.TrimSuffix(line, ",")
 
-		var um URLMap
+		var um model.URLMap
 		if err := json.Unmarshal([]byte(line), &um); err != nil {
 			continue
 		}
@@ -135,29 +127,5 @@ func findMatchingElement(filepath string, isShorten bool, searchValue string) st
 		}
 	}
 
-	return ""
-}
-
-func NewMemoryStorage() *MemoryStorage {
-	return &MemoryStorage{
-		Store: make(map[string]string),
-	}
-}
-
-func (ms *MemoryStorage) SetShortURL(id string, url string) error {
-	ms.Store[id] = url
-	return nil
-}
-
-func (ms *MemoryStorage) GetOriginalURL(id string) string {
-	return ms.Store[id]
-}
-
-func (ms *MemoryStorage) CheckIDByURL(url string) string {
-	for id, origURL := range ms.Store {
-		if origURL == url {
-			return id
-		}
-	}
 	return ""
 }

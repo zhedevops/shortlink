@@ -24,21 +24,20 @@ func run() error {
 	config.SetConfig()
 	cnf := config.GetConfig()
 
-	dsn := strings.TrimSpace(cnf.DatabaseDsn)
-	if dsn != "" {
-		if err := database.ConnectDB(dsn); err != nil {
-			return err
-		}
-		defer database.CloseDB()
-	}
-
 	if err := logger.Initialize(cnf.LogLevel); err != nil {
 		return err
 	}
 
 	var st repository.Repository
+	dsn := strings.TrimSpace(cnf.DatabaseDsn)
 	fsp := strings.TrimSpace(cnf.FileStoragePath)
-	if fsp != "" {
+	if dsn != "" {
+		if err := database.ConnectDB(dsn); err != nil {
+			return err
+		}
+		defer database.CloseDB()
+		st = storage.NewDBStorage(database.Pool)
+	} else if fsp != "" {
 		st = storage.NewFileStorage(fsp)
 	} else {
 		st = storage.NewMemoryStorage()
