@@ -88,7 +88,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 		}
 		resp = append(resp, model.ResponseBatch{
 			CorrelationID: link.UUID,
-			ShortURL:      link.OriginalURL,
+			ShortURL:      link.ShortURL,
 		})
 	}
 

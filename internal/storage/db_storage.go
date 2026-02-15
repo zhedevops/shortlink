@@ -70,14 +70,19 @@ func (dbs *DBStorage) GetOriginalURL(id string) model.Shortys {
 func (dbs *DBStorage) CheckIDByURL(url string) model.Shortys {
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
-	row, err := dbs.db.Query(ctx, `SELECT short_url FROM shortys WHERE original_url = $1`, url)
+	row, err := dbs.db.Query(ctx, `SELECT * FROM shortys WHERE original_url = $1`, url)
 	if err != nil {
 		return model.Shortys{}
 	}
 	defer row.Close()
 	var shortys model.Shortys
 	if row.Next() {
-		err = row.Scan(&shortys)
+		err = row.Scan(
+			&shortys.UUID,
+			&shortys.ShortURL,
+			&shortys.OriginalURL,
+			&shortys.CreatedAt,
+		)
 		if err != nil {
 			return model.Shortys{}
 		}
