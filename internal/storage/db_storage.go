@@ -59,7 +59,11 @@ func (dbs *DBStorage) GetOriginalURL(id string) model.Shortys {
 	defer row.Close()
 	var shortys model.Shortys
 	if row.Next() {
-		err = row.Scan(&shortys)
+		err = row.Scan(
+			&shortys.UUID,
+			&shortys.ShortURL,
+			&shortys.OriginalURL,
+			&shortys.CreatedAt)
 		if err != nil {
 			return model.Shortys{}
 		}
