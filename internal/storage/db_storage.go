@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/zhedevops/shortlink/internal/model"
 )
 
 type DBStorage struct {
@@ -18,14 +19,15 @@ func NewDBStorage(pool *pgxpool.Pool) *DBStorage {
 	}
 }
 
-func (dbs *DBStorage) SetShortURL(id string, url string) error {
+func (dbs *DBStorage) SetShortURL(shortys *model.Shortys) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
 	tx, err := dbs.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	ct, err := tx.Exec(ctx, `INSERT INTO shortys (short_url, original_url) VALUES ($1, $2)`, id, url)
+	sql := `INSERT INTO shortys (uuid, short_url, original_url) VALUES ($1, $2, $3)`
+	ct, err := tx.Exec(ctx, sql, shortys.UUID, shortys.ShortURL, shortys.OriginalURL)
 	if err != nil {
 		errTx := tx.Rollback(ctx)
 		if errTx != nil {
@@ -47,38 +49,38 @@ func (dbs *DBStorage) SetShortURL(id string, url string) error {
 	return nil
 }
 
-func (dbs *DBStorage) GetOriginalURL(id string) string {
+func (dbs *DBStorage) GetOriginalURL(id string) model.Shortys {
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
-	row, err := dbs.db.Query(ctx, `SELECT original_url FROM shortys WHERE short_url = $1`, id)
+	row, err := dbs.db.Query(ctx, `SELECT * FROM shortys WHERE short_url = $1`, id)
 	if err != nil {
-		return ""
+		return model.Shortys{}
 	}
 	defer row.Close()
-	var originalURL string
+	var shortys model.Shortys
 	if row.Next() {
-		err = row.Scan(&originalURL)
+		err = row.Scan(&shortys)
 		if err != nil {
-			return ""
+			return model.Shortys{}
 		}
 	}
-	return originalURL
+	return shortys
 }
 
-func (dbs *DBStorage) CheckIDByURL(url string) string {
+func (dbs *DBStorage) CheckIDByURL(url string) model.Shortys {
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
 	row, err := dbs.db.Query(ctx, `SELECT short_url FROM shortys WHERE original_url = $1`, url)
 	if err != nil {
-		return ""
+		return model.Shortys{}
 	}
 	defer row.Close()
-	var shortURL string
+	var shortys model.Shortys
 	if row.Next() {
-		err = row.Scan(&shortURL)
+		err = row.Scan(&shortys)
 		if err != nil {
-			return ""
+			return model.Shortys{}
 		}
 	}
-	return shortURL
+	return shortys
 }

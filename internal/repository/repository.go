@@ -1,7 +1,9 @@
 package repository
 
+import "github.com/zhedevops/shortlink/internal/model"
+
 type Repository interface {
-	SetShortURL(id string, url string) error
-	GetOriginalURL(id string) string
-	CheckIDByURL(url string) string
+	SetShortURL(shortys *model.Shortys) error
+	GetOriginalURL(id string) model.Shortys
+	CheckIDByURL(url string) model.Shortys
 }

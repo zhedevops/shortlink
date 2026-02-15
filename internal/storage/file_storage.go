@@ -20,7 +20,7 @@ func NewFileStorage(filepath string) *FileStorage {
 	}
 }
 
-func (fs *FileStorage) SetShortURL(id string, url string) error {
+func (fs *FileStorage) SetShortURL(shortys *model.Shortys) error {
 	file, err := os.OpenFile(fs.filepath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
@@ -49,13 +49,7 @@ func (fs *FileStorage) SetShortURL(id string, url string) error {
 		next = count - 1
 	}
 
-	um := model.URLMap{
-		UUID:        next,
-		ShortURL:    id,
-		OriginalURL: url,
-	}
-
-	data, err := json.Marshal(um)
+	data, err := json.Marshal(shortys)
 	if err != nil {
 		return err
 	}
@@ -87,18 +81,18 @@ func (fs *FileStorage) SetShortURL(id string, url string) error {
 	return nil
 }
 
-func (fs *FileStorage) GetOriginalURL(id string) string {
+func (fs *FileStorage) GetOriginalURL(id string) model.Shortys {
 	return findMatchingElement(fs.filepath, true, id)
 }
 
-func (fs *FileStorage) CheckIDByURL(url string) string {
+func (fs *FileStorage) CheckIDByURL(url string) model.Shortys {
 	return findMatchingElement(fs.filepath, false, url)
 }
 
-func findMatchingElement(filepath string, isShorten bool, searchValue string) string {
+func findMatchingElement(filepath string, isShorten bool, searchValue string) model.Shortys {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return ""
+		return model.Shortys{}
 	}
 	defer func() {
 		_ = file.Close()
@@ -112,20 +106,20 @@ func findMatchingElement(filepath string, isShorten bool, searchValue string) st
 		}
 		line = strings.TrimSuffix(line, ",")
 
-		var um model.URLMap
-		if err := json.Unmarshal([]byte(line), &um); err != nil {
+		var shortys model.Shortys
+		if err := json.Unmarshal([]byte(line), &shortys); err != nil {
 			continue
 		}
 		if isShorten {
-			if um.ShortURL == searchValue {
-				return um.OriginalURL
+			if shortys.ShortURL == searchValue {
+				return shortys
 			}
 		} else {
-			if um.OriginalURL == searchValue {
-				return um.ShortURL
+			if shortys.OriginalURL == searchValue {
+				return shortys
 			}
 		}
 	}
 
-	return ""
+	return model.Shortys{}
 }

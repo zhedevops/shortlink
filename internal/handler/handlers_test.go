@@ -155,7 +155,10 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	h := &Handler{service: srv}
 	shortID := "ZMFazWTA"
 	originalURL := "https://ria.ru/"
-	_, err := srv.CreateShortLink(originalURL)
+	var shortys = &model.Shortys{
+		OriginalURL: "https://ria.ru/",
+	}
+	_, err := srv.CreateShortLink(shortys)
 	assert.Nil(t, err)
 
 	r := chi.NewRouter()

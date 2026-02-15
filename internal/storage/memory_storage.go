@@ -1,5 +1,7 @@
 package storage
 
+import "github.com/zhedevops/shortlink/internal/model"
+
 type MemoryStorage struct {
 	Store map[string]string
 }
@@ -10,20 +12,24 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (ms *MemoryStorage) SetShortURL(id string, url string) error {
-	ms.Store[id] = url
+func (ms *MemoryStorage) SetShortURL(shortys *model.Shortys) error {
+	ms.Store[shortys.ShortURL] = shortys.OriginalURL
 	return nil
 }
 
-func (ms *MemoryStorage) GetOriginalURL(id string) string {
-	return ms.Store[id]
+func (ms *MemoryStorage) GetOriginalURL(id string) model.Shortys {
+	return model.Shortys{
+		OriginalURL: ms.Store[id],
+	}
 }
 
-func (ms *MemoryStorage) CheckIDByURL(url string) string {
+func (ms *MemoryStorage) CheckIDByURL(url string) model.Shortys {
 	for id, origURL := range ms.Store {
 		if origURL == url {
-			return id
+			return model.Shortys{
+				ShortURL: id,
+			}
 		}
 	}
-	return ""
+	return model.Shortys{}
 }

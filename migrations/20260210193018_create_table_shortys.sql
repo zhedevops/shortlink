@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 SELECT 'up SQL query';
 CREATE TABLE IF NOT EXISTS shortys (
-                         id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                         uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                          short_url VARCHAR(8) NOT NULL,
                          original_url TEXT NOT NULL,
                          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -1,20 +1,10 @@
 package model
 
 import "time"
-
-type Links struct {
-	URL string
-	ID  string
-}
-
-type URLMap struct {
-	UUID        int    `json:"uuid"`
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
-}
+import guid "github.com/google/uuid"
 
 type Shortys struct {
-	ID          int       `json:"id"`
+	UUID        string    `json:"uuid"`
 	ShortURL    string    `json:"short_url"`
 	OriginalURL string    `json:"original_url"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -28,9 +18,23 @@ type Response struct {
 	Result string `json:"result"`
 }
 
-func NewLinks(url string, id string) *Links {
-	return &Links{
-		URL: url,
-		ID:  id,
+type RequestBatch struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
+}
+
+type ResponseBatch struct {
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
+}
+
+func NewShortys(uuid string, url string, id string) *Shortys {
+	if uuid == "" {
+		uuid = guid.New().String()
+	}
+	return &Shortys{
+		UUID:        uuid,
+		OriginalURL: url,
+		ShortURL:    id,
 	}
 }
