@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,20 +26,13 @@ func (dbs *DBStorage) SetShortURL(shortys *model.Shortys) error {
 		return err
 	}
 	sql := `INSERT INTO shortys (uuid, short_url, original_url) VALUES ($1, $2, $3)`
-	ct, err := tx.Exec(ctx, sql, shortys.UUID, shortys.ShortURL, shortys.OriginalURL)
+	_, err = tx.Exec(ctx, sql, shortys.UUID, shortys.ShortURL, shortys.OriginalURL)
 	if err != nil {
 		errTx := tx.Rollback(ctx)
 		if errTx != nil {
-			return err
+			return errTx
 		}
 		return err
-	}
-	if ct.RowsAffected() == 0 {
-		errTx := tx.Rollback(ctx)
-		if errTx != nil {
-			return err
-		}
-		return errors.New("SetShortURL: no rows inserted")
 	}
 	err = tx.Commit(ctx)
 	if err != nil {

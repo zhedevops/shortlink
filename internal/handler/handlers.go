@@ -31,6 +31,9 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "cannot read body", http.StatusBadRequest)
 		return
 	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
 	var shortys = model.NewShortys("", string(body), "")
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
@@ -53,6 +56,9 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
 		return
 	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
 	var shortys = model.NewShortys("", req.URL, "")
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
@@ -78,6 +84,9 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
 		return
 	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
 	var resp []model.ResponseBatch
 	for _, rb := range req {
 		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "")
@@ -88,7 +97,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 		}
 		resp = append(resp, model.ResponseBatch{
 			CorrelationID: link.UUID,
-			ShortURL:      link.ShortURL,
+			ShortURL:      h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
 		})
 	}
 
