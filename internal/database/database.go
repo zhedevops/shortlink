@@ -39,16 +39,20 @@ func CloseDB() {
 func InitPostgres() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
 	defer cancel()
-	_, err := Pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS shortys (
-                         id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                         short_url VARCHAR(8) NOT NULL,
-                         original_url TEXT NOT NULL,
-                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-						)`,
-	)
-	if err != nil {
-		return err
-	}
+	_, err := Pool.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS shortys (
+			uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			short_url VARCHAR(8) NOT NULL,
+			original_url TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		);
 
-	return nil
+		CREATE INDEX IF NOT EXISTS idx_shortys_short_url 
+			ON shortys(short_url);
+
+		CREATE INDEX IF NOT EXISTS idx_shortys_original_url 
+			ON shortys(original_url);
+	`)
+
+	return err
 }
