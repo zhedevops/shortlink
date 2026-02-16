@@ -87,7 +87,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 	defer func() {
 		_ = r.Body.Close()
 	}()
-	var resp []model.ResponseBatch
+	resp := []model.ResponseBatch{}
 	for _, rb := range req {
 		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "")
 		link, err := h.service.CreateShortLink(shortys)

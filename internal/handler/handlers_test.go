@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang/mock/gomock"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -19,6 +21,7 @@ import (
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/middleware"
+	"github.com/zhedevops/shortlink/internal/mocks"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/service"
 	"github.com/zhedevops/shortlink/internal/storage"
@@ -432,4 +435,187 @@ func TestHandler_PingHandler(t *testing.T) {
 			_ = res.Body.Close()
 		}()
 	})
+}
+
+func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	m := mocks.NewMockRepository(ctrl)
+	value := model.Shortys{}
+	value2 := model.Shortys{
+		UUID:        "69cc5e9c-404e-47c3-b9cf-7222f0122e37",
+		OriginalURL: "http://zgvx7h.ru",
+		ShortURL:    "BGTHakFB",
+	}
+	m.EXPECT().CheckIDByURL("http://dlf82a5xunr.net/vmzsxxp").Return(value)
+	m.EXPECT().CheckIDByURL("http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe").Return(value)
+	m.EXPECT().CheckIDByURL("http://zgvx7h.ru").Return(value).Times(1)
+	m.EXPECT().CheckIDByURL("http://zgvx7h.ru").Return(value2).Times(1)
+	m.EXPECT().CheckIDByURL("http://qpsh6hy.biz").Return(value).Times(1)
+	m.EXPECT().GetOriginalURL("qknZDqRy").Return(value)
+	m.EXPECT().GetOriginalURL("HLYMhqfn").Return(value)
+	m.EXPECT().GetOriginalURL("BGTHakFB").Return(value)
+	m.EXPECT().GetOriginalURL("npDieteQ").Return(value)
+	var shortys = model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy")
+	var shortys2 = model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn")
+	var shortys3 = model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB")
+	var shortys4 = model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ")
+	m.EXPECT().SetShortURL(shortys).Return(nil)
+	m.EXPECT().SetShortURL(shortys2).Return(nil)
+	m.EXPECT().SetShortURL(shortys3).Return(nil).Times(1)
+	m.EXPECT().SetShortURL(shortys4).Return(errors.New("db error")).Times(1)
+	var target = "/api/shorten/batch"
+	cnf := config.GetConfig()
+	srv := service.NewService(m)
+	h := &Handler{service: srv, Cfg: cnf}
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.With(middleware.RequireContentType("application/json")).HandleFunc(target, h.CreateShortLinkBatchHandler)
+
+	type want struct {
+		code        int
+		response    string
+		err         string
+		contentType string
+	}
+	type args struct {
+		method      string
+		target      string
+		body        string
+		contentType string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "MethodPost result success",
+			args: args{
+				method:      http.MethodPost,
+				target:      target,
+				body:        `[{"correlation_id":"d51eae65-0408-4d2d-997d-989f77f26e71","original_url":"http://dlf82a5xunr.net/vmzsxxp"},{"correlation_id":"6200fd8b-a597-4167-97b9-7a6323117bc4","original_url":"http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe"}]`,
+				contentType: "application/json",
+			},
+			want: want{
+				code:        http.StatusCreated,
+				response:    `[{"correlation_id":"d51eae65-0408-4d2d-997d-989f77f26e71","short_url":"http://localhost:8080/qknZDqRy"},{"correlation_id":"6200fd8b-a597-4167-97b9-7a6323117bc4","short_url":"http://localhost:8080/HLYMhqfn"}]`,
+				err:         "",
+				contentType: "application/json",
+			},
+		},
+		{
+			name: "unsupported content type",
+			args: args{
+				method:      http.MethodPost,
+				target:      target,
+				body:        `[{"correlation_id":"d51eae65-0408-4d2d-997d-989f77f26e71","original_url":"http://dlf82a5xunr.net/vmzsxxp"},{"correlation_id":"6200fd8b-a597-4167-97b9-7a6323117bc4","original_url":"http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe"}]`,
+				contentType: "text/plain",
+			},
+			want: want{
+				code:        http.StatusBadRequest,
+				response:    "",
+				err:         "unsupported content type",
+				contentType: "text/plain",
+			},
+		},
+		{
+			name: "invalid json",
+			args: args{
+				method:      http.MethodPost,
+				target:      target,
+				body:        `{"correlation_id":"d51eae65-0408-4d2d-997d-989f77f26e71","original_url":"http://dlf82a5xunr.net/vmzsxxp"},{"correlation_id":"6200fd8b-a597-4167-97b9-7a6323117bc4","original_url":"http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe"}`,
+				contentType: "application/json",
+			},
+			want: want{
+				code:        http.StatusInternalServerError,
+				response:    "",
+				err:         "cannot decode request JSON body",
+				contentType: "text/plain",
+			},
+		},
+		{
+			name: "repeated",
+			args: args{
+				method:      http.MethodPost,
+				target:      target,
+				body:        `[{"correlation_id":"69cc5e9c-404e-47c3-b9cf-7222f0122e37","original_url":"http://zgvx7h.ru"},{"correlation_id":"69cc5e9c-404e-47c3-b9cf-7222f0122e37","original_url":"http://zgvx7h.ru"}]`,
+				contentType: "application/json",
+			},
+			want: want{
+				code:        http.StatusCreated,
+				response:    `[{"correlation_id":"69cc5e9c-404e-47c3-b9cf-7222f0122e37","short_url":"http://localhost:8080/BGTHakFB"}, {"correlation_id":"69cc5e9c-404e-47c3-b9cf-7222f0122e37","short_url":"http://localhost:8080/BGTHakFB"}]`,
+				err:         "",
+				contentType: "application/json",
+			},
+		},
+		{
+			name: "error creating shorty",
+			args: args{
+				method:      http.MethodPost,
+				target:      target,
+				body:        `[{"correlation_id":"8542f426-e340-45d7-b577-b36d5f08aee6","original_url":"http://qpsh6hy.biz"},{"correlation_id":"6200fd8b-a597-4167-97b9-7a6323117bc4","original_url":"http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe"}]`,
+				contentType: "application/json",
+			},
+			want: want{
+				code:        http.StatusInternalServerError,
+				response:    "",
+				err:         "failed set short link: db error",
+				contentType: "text/plain",
+			},
+		},
+		{
+			name: "empty url",
+			args: args{
+				method:      http.MethodPost,
+				target:      target,
+				body:        `[{"correlation_id":"d51eae65-0408-4d2d-997d-989f77f26e71"}]`,
+				contentType: "application/json",
+			},
+			want: want{
+				code:        http.StatusInternalServerError,
+				response:    "",
+				err:         "empty url",
+				contentType: "text/plain",
+			},
+		},
+		{
+			name: "empty batch",
+			args: args{
+				method:      http.MethodPost,
+				target:      target,
+				body:        `[]`,
+				contentType: "application/json",
+			},
+			want: want{
+				code:        http.StatusCreated,
+				response:    `[]`,
+				err:         "",
+				contentType: "application/json",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(tt.args.method, tt.args.target, strings.NewReader(tt.args.body))
+			request.Header.Add("Content-Type", tt.args.contentType)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, request)
+
+			res := w.Result()
+			assert.Equal(t, tt.want.code, res.StatusCode)
+
+			defer func() {
+				_ = res.Body.Close()
+			}()
+			resBody, err := io.ReadAll(res.Body)
+			require.NoError(t, err)
+			assert.Contains(t, res.Header.Get("Content-Type"), tt.want.contentType)
+			if tt.want.err != "" {
+				assert.Contains(t, string(resBody), tt.want.err)
+			} else {
+				assert.JSONEq(t, tt.want.response, string(resBody))
+			}
+		})
+	}
 }
