@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -37,6 +38,10 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	var shortys = model.NewShortys("", string(body), "")
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
+		if errors.Is(err, model.ErrConflict) {
+			http.Error(w, link.ShortURL, http.StatusConflict)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -62,6 +67,10 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	var shortys = model.NewShortys("", req.URL, "")
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
+		if errors.Is(err, model.ErrConflict) {
+			http.Error(w, link.ShortURL, http.StatusConflict)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

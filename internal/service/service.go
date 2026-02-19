@@ -48,6 +48,9 @@ func (srv *Service) CreateShortLink(shortys *model.Shortys) (*model.Shortys, err
 	shortys.ShortURL = id
 	err = srv.repo.SetShortURL(shortys)
 	if err != nil {
+		if errors.Is(err, model.ErrConflict) {
+			return shortys, err
+		}
 		return nil, fmt.Errorf("failed set short link: %w", err)
 	}
 	return shortys, nil

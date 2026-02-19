@@ -1,7 +1,11 @@
 package model
 
-import "time"
-import guid "github.com/google/uuid"
+import (
+	"errors"
+	"time"
+
+	guid "github.com/google/uuid"
+)
 
 type Shortys struct {
 	UUID        string    `json:"uuid"`
@@ -27,6 +31,8 @@ type ResponseBatch struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
+
+var ErrConflict = errors.New("data conflict")
 
 func NewShortys(uuid string, url string, id string) *Shortys {
 	if uuid == "" {

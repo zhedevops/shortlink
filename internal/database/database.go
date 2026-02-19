@@ -50,7 +50,7 @@ func InitPostgres() error {
 		CREATE INDEX IF NOT EXISTS idx_shortys_short_url 
 			ON shortys(short_url);
 
-		CREATE INDEX IF NOT EXISTS idx_shortys_original_url 
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_shortys_original_url 
 			ON shortys(original_url);
 	`)
 
