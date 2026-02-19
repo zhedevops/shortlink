@@ -68,7 +68,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
-			h.setApiShortenErrorResponseOnConflict(w, link)
+			h.setShortenErrorResponseOnConflict(w, link)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -150,7 +150,7 @@ func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.
 	}
 }
 
-func (h *Handler) setApiShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shortys) {
+func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shortys) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusConflict)
 	var resp = model.Response{
