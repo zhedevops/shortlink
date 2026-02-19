@@ -39,7 +39,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
-			http.Error(w, link.ShortURL, http.StatusConflict)
+			h.setErrorResponseOnConflict(w, link)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -68,7 +68,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
-			http.Error(w, link.ShortURL, http.StatusConflict)
+			h.setApiShortenErrorResponseOnConflict(w, link)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -137,4 +137,27 @@ func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shortys) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusConflict)
+
+	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
+	_, err := w.Write([]byte(resp))
+	if err != nil {
+		log.Printf("failed to write response: %v", err)
+	}
+}
+
+func (h *Handler) setApiShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shortys) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusConflict)
+	var resp = model.Response{
+		Result: h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
+	}
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		log.Printf("error encoding response: %v", err)
+	}
 }
