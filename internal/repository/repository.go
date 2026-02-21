@@ -7,8 +7,8 @@ import (
 )
 
 type Repository interface {
-	SetShortURL(shortys *model.Shortys) error
-	GetOriginalURL(id string) model.Shortys
-	CheckIDByURL(url string) model.Shortys
+	SetShortURL(shortys *model.Shorty) error
+	GetOriginalURL(id string) model.Shorty
+	CheckIDByURL(url string) model.Shorty
 	Ping(ctx context.Context) error
 }

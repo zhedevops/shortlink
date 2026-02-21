@@ -7,7 +7,7 @@ import (
 	guid "github.com/google/uuid"
 )
 
-type Shortys struct {
+type Shorty struct {
 	UUID        string    `json:"uuid"`
 	ShortURL    string    `json:"short_url"`
 	OriginalURL string    `json:"original_url"`
@@ -34,11 +34,11 @@ type ResponseBatch struct {
 
 var ErrConflict = errors.New("data conflict")
 
-func NewShortys(uuid string, url string, id string) *Shortys {
+func NewShortys(uuid string, url string, id string) *Shorty {
 	if uuid == "" {
 		uuid = guid.New().String()
 	}
-	return &Shortys{
+	return &Shorty{
 		UUID:        uuid,
 		OriginalURL: url,
 		ShortURL:    id,

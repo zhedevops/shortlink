@@ -20,24 +20,24 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (ms *MemoryStorage) SetShortURL(shortys *model.Shortys) error {
+func (ms *MemoryStorage) SetShortURL(shortys *model.Shorty) error {
 	ms.Store[shortys.ShortURL] = shortys.OriginalURL
 	return nil
 }
 
-func (ms *MemoryStorage) GetOriginalURL(id string) model.Shortys {
-	return model.Shortys{
+func (ms *MemoryStorage) GetOriginalURL(id string) model.Shorty {
+	return model.Shorty{
 		OriginalURL: ms.Store[id],
 	}
 }
 
-func (ms *MemoryStorage) CheckIDByURL(url string) model.Shortys {
+func (ms *MemoryStorage) CheckIDByURL(url string) model.Shorty {
 	for id, origURL := range ms.Store {
 		if origURL == url {
-			return model.Shortys{
+			return model.Shorty{
 				ShortURL: id,
 			}
 		}
 	}
-	return model.Shortys{}
+	return model.Shorty{}
 }

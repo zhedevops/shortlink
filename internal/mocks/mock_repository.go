@@ -36,10 +36,10 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // CheckIDByURL mocks base method.
-func (m *MockRepository) CheckIDByURL(url string) model.Shortys {
+func (m *MockRepository) CheckIDByURL(url string) model.Shorty {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckIDByURL", url)
-	ret0, _ := ret[0].(model.Shortys)
+	ret0, _ := ret[0].(model.Shorty)
 	return ret0
 }
 
@@ -50,10 +50,10 @@ func (mr *MockRepositoryMockRecorder) CheckIDByURL(url interface{}) *gomock.Call
 }
 
 // GetOriginalURL mocks base method.
-func (m *MockRepository) GetOriginalURL(id string) model.Shortys {
+func (m *MockRepository) GetOriginalURL(id string) model.Shorty {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOriginalURL", id)
-	ret0, _ := ret[0].(model.Shortys)
+	ret0, _ := ret[0].(model.Shorty)
 	return ret0
 }
 
@@ -78,7 +78,7 @@ func (mr *MockRepositoryMockRecorder) Ping(ctx interface{}) *gomock.Call {
 }
 
 // SetShortURL mocks base method.
-func (m *MockRepository) SetShortURL(shortys *model.Shortys) error {
+func (m *MockRepository) SetShortURL(shortys *model.Shorty) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetShortURL", shortys)
 	ret0, _ := ret[0].(error)

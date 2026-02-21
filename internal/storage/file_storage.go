@@ -25,7 +25,7 @@ func NewFileStorage(filepath string) *FileStorage {
 	}
 }
 
-func (fs *FileStorage) SetShortURL(shortys *model.Shortys) error {
+func (fs *FileStorage) SetShortURL(shortys *model.Shorty) error {
 	file, err := os.OpenFile(fs.filepath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
@@ -86,18 +86,18 @@ func (fs *FileStorage) SetShortURL(shortys *model.Shortys) error {
 	return nil
 }
 
-func (fs *FileStorage) GetOriginalURL(id string) model.Shortys {
+func (fs *FileStorage) GetOriginalURL(id string) model.Shorty {
 	return findMatchingElement(fs.filepath, true, id)
 }
 
-func (fs *FileStorage) CheckIDByURL(url string) model.Shortys {
+func (fs *FileStorage) CheckIDByURL(url string) model.Shorty {
 	return findMatchingElement(fs.filepath, false, url)
 }
 
-func findMatchingElement(filepath string, isShorten bool, searchValue string) model.Shortys {
+func findMatchingElement(filepath string, isShorten bool, searchValue string) model.Shorty {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return model.Shortys{}
+		return model.Shorty{}
 	}
 	defer func() {
 		_ = file.Close()
@@ -111,7 +111,7 @@ func findMatchingElement(filepath string, isShorten bool, searchValue string) mo
 		}
 		line = strings.TrimSuffix(line, ",")
 
-		var shortys model.Shortys
+		var shortys model.Shorty
 		if err := json.Unmarshal([]byte(line), &shortys); err != nil {
 			continue
 		}
@@ -126,5 +126,5 @@ func findMatchingElement(filepath string, isShorten bool, searchValue string) mo
 		}
 	}
 
-	return model.Shortys{}
+	return model.Shorty{}
 }

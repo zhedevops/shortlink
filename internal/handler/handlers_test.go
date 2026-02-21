@@ -158,7 +158,7 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	h := &Handler{service: srv}
 	shortID := "ZMFazWTA"
 	originalURL := "https://ria.ru/"
-	var shortys = &model.Shortys{
+	var shortys = &model.Shorty{
 		OriginalURL: "https://ria.ru/",
 	}
 	_, err := srv.CreateShortLink(shortys)
@@ -436,8 +436,8 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := mocks.NewMockRepository(ctrl)
-	value := model.Shortys{}
-	value2 := model.Shortys{
+	value := model.Shorty{}
+	value2 := model.Shorty{
 		UUID:        "69cc5e9c-404e-47c3-b9cf-7222f0122e37",
 		OriginalURL: "http://zgvx7h.ru",
 		ShortURL:    "BGTHakFB",

@@ -138,7 +138,7 @@ func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shortys) {
+func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusConflict)
 
@@ -149,7 +149,7 @@ func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.
 	}
 }
 
-func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shortys) {
+func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusConflict)
 	var resp = model.Response{

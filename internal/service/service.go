@@ -26,7 +26,7 @@ func NewService(r repository.Repository) *Service {
 	return &Service{repo: r}
 }
 
-func (srv *Service) CreateShortLink(shortys *model.Shortys) (*model.Shortys, error) {
+func (srv *Service) CreateShortLink(shortys *model.Shorty) (*model.Shorty, error) {
 	urlStr := strings.TrimSpace(shortys.OriginalURL)
 	if len(urlStr) == 0 {
 		return nil, errors.New("empty url")

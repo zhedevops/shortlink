@@ -20,7 +20,7 @@ func NewDBStorage(pool *pgxpool.Pool) *DBStorage {
 	}
 }
 
-func (dbs *DBStorage) SetShortURL(shortys *model.Shortys) error {
+func (dbs *DBStorage) SetShortURL(shortys *model.Shorty) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
 	tx, err := dbs.db.Begin(ctx)
@@ -44,15 +44,15 @@ func (dbs *DBStorage) SetShortURL(shortys *model.Shortys) error {
 	return tx.Commit(ctx)
 }
 
-func (dbs *DBStorage) GetOriginalURL(id string) model.Shortys {
+func (dbs *DBStorage) GetOriginalURL(id string) model.Shorty {
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
 	row, err := dbs.db.Query(ctx, `SELECT * FROM shortys WHERE short_url = $1`, id)
 	if err != nil {
-		return model.Shortys{}
+		return model.Shorty{}
 	}
 	defer row.Close()
-	var shortys model.Shortys
+	var shortys model.Shorty
 	if row.Next() {
 		err = row.Scan(
 			&shortys.UUID,
@@ -60,14 +60,14 @@ func (dbs *DBStorage) GetOriginalURL(id string) model.Shortys {
 			&shortys.OriginalURL,
 			&shortys.CreatedAt)
 		if err != nil {
-			return model.Shortys{}
+			return model.Shorty{}
 		}
 	}
 	return shortys
 }
 
-func (dbs *DBStorage) CheckIDByURL(url string) model.Shortys {
-	return model.Shortys{}
+func (dbs *DBStorage) CheckIDByURL(url string) model.Shorty {
+	return model.Shorty{}
 }
 
 func (dbs *DBStorage) Ping(ctx context.Context) error {
