@@ -12,7 +12,7 @@ import (
 
 func TestConnectDBWithoutDsn(t *testing.T) {
 	a := assert.New(t)
-	err := ConnectDB("")
+	_, err := ConnectDB("")
 	a.NotNil(err)
 }
 
@@ -24,12 +24,12 @@ func TestConnectDBWithDsn(t *testing.T) {
 		t.Skip("dns is required")
 	}
 	a.True(dsnErr)
-	err := ConnectDB(dsn)
+	pool, err := ConnectDB(dsn)
 	a.Nil(err)
-	a.NotNil(Pool)
-	a.IsType(&pgxpool.Pool{}, Pool)
-	CloseDB()
+	a.NotNil(pool)
+	a.IsType(&pgxpool.Pool{}, pool)
+	CloseDB(pool)
 	ctx := context.Background()
-	err = Pool.Ping(ctx)
+	err = pool.Ping(ctx)
 	a.NotNil(err)
 }

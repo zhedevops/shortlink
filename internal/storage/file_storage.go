@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"os"
@@ -12,6 +13,10 @@ import (
 
 type FileStorage struct {
 	filepath string
+}
+
+func (fs *FileStorage) Ping(ctx context.Context) error {
+	return nil
 }
 
 func NewFileStorage(filepath string) *FileStorage {

@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/zhedevops/shortlink/internal/config"
-	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/service"
 )
@@ -131,7 +130,7 @@ func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := database.Pool.Ping(ctx)
+	err := h.service.Ping(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

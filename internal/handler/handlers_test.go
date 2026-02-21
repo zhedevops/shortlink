@@ -392,22 +392,17 @@ func TestHandler_PingHandler(t *testing.T) {
 	}
 	a.True(dsnErr)
 	cnf := config.GetConfig()
-	fileName := "../../data/files/defaultpath/test.json"
-	defer func() {
-		_ = os.Remove(fileName)
-	}()
-	fs := storage.NewFileStorage(fileName)
-	srv := service.NewService(fs)
+	// Открываем пул
+	pool, err := database.ConnectDB(dsn)
+	a.Nil(err)
+	a.NotNil(pool)
+	a.IsType(&pgxpool.Pool{}, pool)
+	st := storage.NewDBStorage(pool)
+	srv := service.NewService(st)
 	h := &Handler{service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.HandleFunc("/ping", h.PingHandler)
 	t.Run("Pool opened. Ping ok", func(t *testing.T) {
-		// Открываем пул
-		err := database.ConnectDB(dsn)
-		a.Nil(err)
-		a.NotNil(database.Pool)
-		a.IsType(&pgxpool.Pool{}, database.Pool)
-
 		request := httptest.NewRequest(http.MethodGet, "/ping", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, request)
@@ -420,9 +415,9 @@ func TestHandler_PingHandler(t *testing.T) {
 	})
 	t.Run("Pool closed. Ping failure", func(t *testing.T) {
 		// Удаляем пул
-		database.CloseDB()
+		database.CloseDB(pool)
 		ctx := context.Background()
-		err := database.Pool.Ping(ctx)
+		err = pool.Ping(ctx)
 		a.NotNil(err)
 
 		request := httptest.NewRequest(http.MethodGet, "/ping", nil)

@@ -1,9 +1,17 @@
 package storage
 
-import "github.com/zhedevops/shortlink/internal/model"
+import (
+	"context"
+
+	"github.com/zhedevops/shortlink/internal/model"
+)
 
 type MemoryStorage struct {
 	Store map[string]string
+}
+
+func (ms *MemoryStorage) Ping(ctx context.Context) error {
+	return nil
 }
 
 func NewMemoryStorage() *MemoryStorage {

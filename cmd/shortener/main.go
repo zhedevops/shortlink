@@ -28,23 +28,37 @@ func run() error {
 		return err
 	}
 
+	var completion func()
+
 	var st repository.Repository
 	dsn := strings.TrimSpace(cnf.DatabaseDsn)
 	fsp := strings.TrimSpace(cnf.FileStoragePath)
 	if dsn != "" {
-		if err := database.ConnectDB(dsn); err != nil {
+		pool, err := database.ConnectDB(dsn)
+		if err != nil {
 			return err
 		}
-		defer database.CloseDB()
-		st = storage.NewDBStorage(database.Pool)
+		st = storage.NewDBStorage(pool)
+		completion = func() {
+			log.Println("database pool closed")
+			database.CloseDB(pool)
+		}
 	} else if fsp != "" {
 		st = storage.NewFileStorage(fsp)
+		completion = func() {}
 	} else {
 		st = storage.NewMemoryStorage()
+		completion = func() {}
 	}
 
 	srv := service.NewService(st)
 	h := handler.NewHandler(srv, cnf)
 
-	return router.Serve(h)
+	if err := router.Serve(h); err != nil {
+		return err
+	}
+
+	completion()
+
+	return nil
 }

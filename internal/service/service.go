@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha1"
 	"errors"
 	"fmt"
@@ -84,4 +85,8 @@ func (srv *Service) GetOriginalURL(id string) (string, error) {
 		return "", errors.New("url not found")
 	}
 	return existingShortys.OriginalURL, nil
+}
+
+func (srv *Service) Ping(ctx context.Context) error {
+	return srv.repo.Ping(ctx)
 }

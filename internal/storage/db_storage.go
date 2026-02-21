@@ -2,8 +2,10 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zhedevops/shortlink/internal/model"
 )
@@ -25,33 +27,21 @@ func (dbs *DBStorage) SetShortURL(shortys *model.Shortys) error {
 	if err != nil {
 		return err
 	}
-	var inserted bool
 	sql := `INSERT INTO shortys (uuid, short_url, original_url) 
 			VALUES ($1, $2, $3) 
 			ON CONFLICT (original_url) 
-			    DO UPDATE SET short_url = EXCLUDED.short_url 
-			RETURNING (xmax = 0) AS inserted;`
-	err = tx.QueryRow(ctx, sql, shortys.UUID, shortys.ShortURL, shortys.OriginalURL).Scan(&inserted)
-	if err != nil {
-		errTx := tx.Rollback(ctx)
-		if errTx != nil {
-			return errTx
-		}
-		return err
-	}
-	if !inserted {
-		errTx := tx.Rollback(ctx)
-		if errTx != nil {
-			return errTx
-		}
-
+			    DO NOTHING
+			RETURNING uuid;`
+	err = tx.QueryRow(ctx, sql, shortys.UUID, shortys.ShortURL, shortys.OriginalURL).Scan(new(string))
+	if errors.Is(err, pgx.ErrNoRows) {
+		_ = tx.Rollback(ctx)
 		return model.ErrConflict
 	}
-	err = tx.Commit(ctx)
 	if err != nil {
+		_ = tx.Rollback(ctx)
 		return err
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (dbs *DBStorage) GetOriginalURL(id string) model.Shortys {
@@ -78,4 +68,8 @@ func (dbs *DBStorage) GetOriginalURL(id string) model.Shortys {
 
 func (dbs *DBStorage) CheckIDByURL(url string) model.Shortys {
 	return model.Shortys{}
+}
+
+func (dbs *DBStorage) Ping(ctx context.Context) error {
+	return dbs.db.Ping(ctx)
 }
