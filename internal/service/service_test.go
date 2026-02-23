@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/storage"
 )
 
@@ -13,23 +14,23 @@ func TestServiceFuncs(t *testing.T) {
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
-	fs, err := storage.NewFileStorage(fileName)
-	assert.Nil(t, err)
+	fs := storage.NewFileStorage(fileName)
 	srv := NewService(fs)
 	url := "https://example.com"
+	var shortys = model.NewShortys("", url, "")
 
 	t.Run("test CreateShortLink from url", func(t *testing.T) {
-		link, err := srv.CreateShortLink(url)
+		link, err := srv.CreateShortLink(shortys)
 		assert.Nil(t, err)
 		assert.NotNil(t, link)
-		assert.Equal(t, url, link.URL)
-		assert.Len(t, link.ID, 8)
+		assert.Equal(t, url, link.OriginalURL)
+		assert.Len(t, link.ShortURL, 8)
 	})
 
 	t.Run("success test GetOriginalURL", func(t *testing.T) {
-		link, err := srv.CreateShortLink(url)
+		link, err := srv.CreateShortLink(shortys)
 		assert.Nil(t, err)
-		gotURL, err := srv.GetOriginalURL(link.ID)
+		gotURL, err := srv.GetOriginalURL(link.ShortURL)
 		assert.Nil(t, err)
 		assert.Equal(t, url, gotURL)
 	})

@@ -26,6 +26,7 @@ type EnvParams struct {
 	ResponseAddr    *string `env:"BASE_URL"`
 	LogLevel        *string `env:"LOG_LEVEL"`
 	FileStoragePath *string `env:"FILE_STORAGE_PATH"`
+	DatabaseDsn     *string `env:"DATABASE_DSN"`
 }
 
 type Config struct {
@@ -33,6 +34,7 @@ type Config struct {
 	ResponseAddr    *netAddress
 	LogLevel        string
 	FileStoragePath string
+	DatabaseDsn     string
 }
 
 var cfg = &Config{
@@ -106,6 +108,10 @@ func parseEnvParams() {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		log.Fatal(err)
 	}
+
+	if params.DatabaseDsn != nil {
+		cfg.DatabaseDsn = *params.DatabaseDsn
+	}
 }
 
 func SetConfigByFlag() {
@@ -113,5 +119,6 @@ func SetConfigByFlag() {
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
 	flag.StringVar(&cfg.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
+	flag.StringVar(&cfg.DatabaseDsn, "d", "", "db dsn")
 	flag.Parse()
 }

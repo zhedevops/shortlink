@@ -2,28 +2,30 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
+
+	"github.com/zhedevops/shortlink/internal/model"
 )
 
 type FileStorage struct {
 	filepath string
 }
 
-type URLMap struct {
-	UUID        int    `json:"uuid"`
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
+func (fs *FileStorage) Ping(ctx context.Context) error {
+	return nil
 }
 
-func NewFileStorage(filepath string) (*FileStorage, error) {
+func NewFileStorage(filepath string) *FileStorage {
 	return &FileStorage{
 		filepath: filepath,
-	}, nil
+	}
 }
 
-func (fs *FileStorage) SetShortURL(id string, url string) error {
+func (fs *FileStorage) SetShortURL(shortys *model.Shorty) error {
 	file, err := os.OpenFile(fs.filepath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
@@ -52,13 +54,7 @@ func (fs *FileStorage) SetShortURL(id string, url string) error {
 		next = count - 1
 	}
 
-	um := URLMap{
-		UUID:        next,
-		ShortURL:    id,
-		OriginalURL: url,
-	}
-
-	data, err := json.Marshal(um)
+	data, err := json.Marshal(shortys)
 	if err != nil {
 		return err
 	}
@@ -90,33 +86,18 @@ func (fs *FileStorage) SetShortURL(id string, url string) error {
 	return nil
 }
 
-func (fs *FileStorage) GetOriginalURL(id string) string {
-	file, err := os.Open(fs.filepath)
-	if err != nil {
-		return ""
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		var um URLMap
-		if err := json.Unmarshal(scanner.Bytes(), &um); err != nil {
-			continue
-		}
-		if um.ShortURL == id {
-			return um.OriginalURL
-		}
-	}
-
-	return ""
+func (fs *FileStorage) GetOriginalURL(id string) model.Shorty {
+	return findMatchingElement(fs.filepath, true, id)
 }
 
-func (fs *FileStorage) CheckIDByURL(url string) string {
-	file, err := os.Open(fs.filepath)
+func (fs *FileStorage) CheckIDByURL(url string) model.Shorty {
+	return findMatchingElement(fs.filepath, false, url)
+}
+
+func findMatchingElement(filepath string, isShorten bool, searchValue string) model.Shorty {
+	file, err := os.Open(filepath)
 	if err != nil {
-		return ""
+		return model.Shorty{}
 	}
 	defer func() {
 		_ = file.Close()
@@ -124,14 +105,26 @@ func (fs *FileStorage) CheckIDByURL(url string) string {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		var um URLMap
-		if err := json.Unmarshal(scanner.Bytes(), &um); err != nil {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "[" || line == "]" || line == "" {
 			continue
 		}
-		if um.OriginalURL == url {
-			return um.ShortURL
+		line = strings.TrimSuffix(line, ",")
+
+		var shortys model.Shorty
+		if err := json.Unmarshal([]byte(line), &shortys); err != nil {
+			continue
+		}
+		if isShorten {
+			if shortys.ShortURL == searchValue {
+				return shortys
+			}
+		} else {
+			if shortys.OriginalURL == searchValue {
+				return shortys
+			}
 		}
 	}
 
-	return ""
+	return model.Shorty{}
 }

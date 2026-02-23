@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -30,12 +31,20 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "cannot read body", http.StatusBadRequest)
 		return
 	}
-	link, err := h.service.CreateShortLink(string(body))
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	var shortys = model.NewShortys("", string(body), "")
+	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
+		if errors.Is(err, model.ErrConflict) {
+			h.setErrorResponseOnConflict(w, link)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ID
+	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(resp))
@@ -51,12 +60,20 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
 		return
 	}
-	link, err := h.service.CreateShortLink(req.URL)
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	var shortys = model.NewShortys("", req.URL, "")
+	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
+		if errors.Is(err, model.ErrConflict) {
+			h.setShortenErrorResponseOnConflict(w, link)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	respLink := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ID
+	respLink := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
 	var resp = model.Response{
 		Result: respLink,
 	}
@@ -64,6 +81,38 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusCreated)
 	encoder := json.NewEncoder(w)
 	if err = encoder.Encode(resp); err != nil {
+		log.Printf("error encoding response: %v", err)
+	}
+}
+
+func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
+	var req []model.RequestBatch
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&req); err != nil {
+		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	resp := []model.ResponseBatch{}
+	for _, rb := range req {
+		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "")
+		link, err := h.service.CreateShortLink(shortys)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		resp = append(resp, model.ResponseBatch{
+			CorrelationID: link.UUID,
+			ShortURL:      h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
 		log.Printf("error encoding response: %v", err)
 	}
 }
@@ -77,4 +126,37 @@ func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", urlStr)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	err := h.service.Ping(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusConflict)
+
+	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
+	_, err := w.Write([]byte(resp))
+	if err != nil {
+		log.Printf("failed to write response: %v", err)
+	}
+}
+
+func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusConflict)
+	var resp = model.Response{
+		Result: h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
+	}
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		log.Printf("error encoding response: %v", err)
+	}
 }
