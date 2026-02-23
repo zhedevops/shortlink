@@ -26,6 +26,11 @@ func NewHandler(s *service.Service, cnf *config.Config) *Handler {
 }
 
 func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request) {
+	user, err := h.handleCookie(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "cannot read body", http.StatusBadRequest)
@@ -34,7 +39,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	defer func() {
 		_ = r.Body.Close()
 	}()
-	var shortys = model.NewShortys("", string(body), "")
+	var shortys = model.NewShortys("", string(body), "", user.ID)
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
@@ -54,6 +59,11 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Request) {
+	user, err := h.handleCookie(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	var req model.Request
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
@@ -63,7 +73,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	defer func() {
 		_ = r.Body.Close()
 	}()
-	var shortys = model.NewShortys("", req.URL, "")
+	var shortys = model.NewShortys("", req.URL, "", user.ID)
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
@@ -86,6 +96,11 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
+	user, err := h.handleCookie(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	var req []model.RequestBatch
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
@@ -97,7 +112,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 	}()
 	resp := []model.ResponseBatch{}
 	for _, rb := range req {
-		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "")
+		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
 		link, err := h.service.CreateShortLink(shortys)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -159,4 +174,63 @@ func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link 
 	if err := encoder.Encode(resp); err != nil {
 		log.Printf("error encoding response: %v", err)
 	}
+}
+
+func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
+	cookieAuth, _ := r.Cookie("Authorization")
+	user, err := h.service.CheckAuthCookie(cookieAuth)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	links, err := h.service.GetUserLinks(user.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	if links == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	resp := []model.ResponseUserLinks{}
+	for _, s := range links {
+		resp = append(resp, model.ResponseUserLinks{
+			ShortURL:    h.Cfg.ResponseAddr.ServerAddress + "/" + s.ShortURL,
+			OriginalURL: s.OriginalURL,
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		log.Printf("error encoding response: %v", err)
+	}
+}
+
+func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.User, error) {
+	cookieAuth, err := r.Cookie("Authorization")
+	var user = model.User{}
+	needCreate := false
+	if err != nil {
+		needCreate = true
+	}
+	if !needCreate {
+		user, err = h.service.CheckAuthCookie(cookieAuth)
+		if err != nil {
+			needCreate = true
+		}
+	}
+	if needCreate {
+		user, err = h.service.GetNewUser()
+		if err != nil {
+			return user, err
+		}
+		ac := h.service.GetAuthCookie(user)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "Authorization",
+			Value:    ac,
+			Path:     "/",
+			HttpOnly: true,
+		})
+	}
+	return user, nil
 }

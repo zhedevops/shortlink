@@ -12,6 +12,7 @@ type Shorty struct {
 	ShortURL    string    `json:"short_url"`
 	OriginalURL string    `json:"original_url"`
 	CreatedAt   time.Time `json:"created_at"`
+	UserID      uint32    `json:"user_id"`
 }
 
 type Request struct {
@@ -32,9 +33,24 @@ type ResponseBatch struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type ResponseUserLinks struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
+type User struct {
+	ID        uint32    `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type UserJWT struct {
+	UID uint32 `json:"uid"`
+	Exp int64  `json:"exp"`
+}
+
 var ErrConflict = errors.New("data conflict")
 
-func NewShortys(uuid string, url string, id string) *Shorty {
+func NewShortys(uuid string, url string, id string, userID uint32) *Shorty {
 	if uuid == "" {
 		uuid = guid.New().String()
 	}
@@ -42,5 +58,6 @@ func NewShortys(uuid string, url string, id string) *Shorty {
 		UUID:        uuid,
 		OriginalURL: url,
 		ShortURL:    id,
+		UserID:      userID,
 	}
 }

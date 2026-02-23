@@ -2,9 +2,14 @@ package service
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -17,6 +22,8 @@ import (
 // 52 буквы
 const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const maxAttempts = 5
+
+var secretkey = []byte("supersecretkey")
 
 type Service struct {
 	repo repository.Repository
@@ -89,4 +96,56 @@ func (srv *Service) GetOriginalURL(id string) (string, error) {
 
 func (srv *Service) Ping(ctx context.Context) error {
 	return srv.repo.Ping(ctx)
+}
+
+func (srv *Service) GetNewUser() (model.User, error) {
+	return srv.repo.CreateUser()
+}
+
+func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error) {
+	user := model.User{}
+	ujwt := model.UserJWT{}
+	values := strings.Split(cookieAuth.Value, ".")
+	if len(values) != 2 {
+		return user, errors.New("bad cookie value")
+	}
+	jwtData, err := base64.StdEncoding.DecodeString(values[0])
+	if err != nil {
+		return user, errors.New("decode cookie value failed")
+	}
+	signature, err := base64.StdEncoding.DecodeString(values[1])
+	if err != nil {
+		return user, errors.New("decode cookie value signature failed")
+	}
+	h := hmac.New(sha256.New, secretkey)
+	h.Write(jwtData)
+	sign := h.Sum(nil)
+	if !hmac.Equal(sign, signature) {
+		return user, errors.New("signature verification failed")
+	}
+	err = json.Unmarshal(jwtData, &ujwt)
+	if err != nil {
+		return user, errors.New("unmarshal user data failed")
+	}
+	if ujwt.Exp < time.Now().Unix() {
+		return user, errors.New("user expired")
+	}
+	user.ID = ujwt.UID
+	return user, nil
+}
+
+func (srv *Service) GetAuthCookie(user model.User) string {
+	userJWT := model.UserJWT{
+		UID: user.ID,
+		Exp: time.Now().Add(time.Hour).Unix(),
+	}
+	userData, _ := json.Marshal(userJWT)
+	h := hmac.New(sha256.New, secretkey)
+	h.Write(userData)
+	sign := h.Sum(nil)
+	return base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)
+}
+
+func (srv *Service) GetUserLinks(userID uint32) ([]*model.Shorty, error) {
+	return srv.repo.GetShortysByUser(userID)
 }

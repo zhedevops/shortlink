@@ -11,4 +11,6 @@ type Repository interface {
 	GetOriginalURL(id string) model.Shorty
 	CheckIDByURL(url string) model.Shorty
 	Ping(ctx context.Context) error
+	CreateUser() (model.User, error)
+	GetShortysByUser(userID uint32) ([]*model.Shorty, error)
 }
