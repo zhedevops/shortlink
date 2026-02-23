@@ -40,7 +40,8 @@ func InitPostgres(pool *pgxpool.Pool) error {
 			uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			short_url VARCHAR(8) NOT NULL,
 			original_url TEXT NOT NULL,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			user_id INT NOT NULL
 		);
 
 		CREATE INDEX IF NOT EXISTS idx_shortys_short_url 
@@ -48,6 +49,11 @@ func InitPostgres(pool *pgxpool.Pool) error {
 
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_shortys_original_url 
 			ON shortys(original_url);
+        
+        CREATE TABLE IF NOT EXISTS users (
+            id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
 	`)
 
 	return err
