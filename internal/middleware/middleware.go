@@ -51,14 +51,3 @@ func Logger(h http.Handler) http.Handler {
 			Send()
 	})
 }
-
-func Auth(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := r.Cookie("Authorization")
-		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
-}

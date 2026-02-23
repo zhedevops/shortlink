@@ -177,10 +177,9 @@ func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link 
 }
 
 func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
-	cookieAuth, _ := r.Cookie("Authorization")
-	user, err := h.service.CheckAuthCookie(cookieAuth)
+	user, err := h.handleCookie(w, r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	links, err := h.service.GetUserLinks(user.ID)
@@ -199,7 +198,7 @@ func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	encoder := json.NewEncoder(w)
 	if err := encoder.Encode(resp); err != nil {
 		log.Printf("error encoding response: %v", err)
