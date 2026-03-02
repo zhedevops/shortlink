@@ -59,7 +59,8 @@ func (dbs *DBStorage) GetOriginalURL(id string) model.Shorty {
 			&shortys.ShortURL,
 			&shortys.OriginalURL,
 			&shortys.CreatedAt,
-			&shortys.UserID)
+			&shortys.UserID,
+			&shortys.DeletedFlag)
 		if err != nil {
 			return model.Shorty{}
 		}
@@ -109,4 +110,19 @@ func (dbs *DBStorage) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
 		shortys = append(shortys, &shorty)
 	}
 	return shortys, nil
+}
+
+func (dbs *DBStorage) DeleteLinks(ids []string, userID uint32) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
+	defer cancel()
+	tx, err := dbs.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `UPDATE shortys SET is_deleted = true WHERE short_url = ANY($1) AND user_id = $2`, ids, userID)
+	if err != nil {
+		_ = tx.Rollback(ctx)
+		return err
+	}
+	return tx.Commit(ctx)
 }

@@ -24,6 +24,7 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 	r.With(middleware.RequireContentType("text/plain")).Post("/", h.CreateShortLinkHandler)
 	r.With(middleware.RequireContentType("application/json")).Post("/api/shorten", h.CreateShortLinkEncHandler)
 	r.With(middleware.RequireContentType("application/json")).Post("/api/shorten/batch", h.CreateShortLinkBatchHandler)
+	r.With(middleware.RequireContentType("application/json")).Delete("/api/user/urls", h.DeleteLinkBatchHandler)
 	return r
 }
 

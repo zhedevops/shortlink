@@ -91,6 +91,9 @@ func (srv *Service) GetOriginalURL(id string) (string, error) {
 	if existingShortys.OriginalURL == "" {
 		return "", errors.New("url not found")
 	}
+	if existingShortys.DeletedFlag {
+		return "", model.ErrURLDeleted
+	}
 	return existingShortys.OriginalURL, nil
 }
 
@@ -148,4 +151,25 @@ func (srv *Service) GetAuthCookie(user model.User) string {
 
 func (srv *Service) GetUserLinks(userID uint32) ([]*model.Shorty, error) {
 	return srv.repo.GetShortysByUser(userID)
+}
+
+func (srv *Service) DeleteLinks(URLs []string, userID uint32) error {
+	inputCh := deleteLinksFanIn(URLs)
+	var ids []string
+	for in := range inputCh {
+		ids = append(ids, in)
+	}
+
+	return srv.repo.DeleteLinks(ids, userID)
+}
+
+func deleteLinksFanIn(URLs []string) chan string {
+	inputCh := make(chan string, len(URLs))
+	go func() {
+		defer close(inputCh)
+		for _, u := range URLs {
+			inputCh <- u
+		}
+	}()
+	return inputCh
 }

@@ -64,6 +64,20 @@ func (mr *MockRepositoryMockRecorder) CreateUser() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockRepository)(nil).CreateUser))
 }
 
+// DeleteLinks mocks base method.
+func (m *MockRepository) DeleteLinks(ids []string, userID uint32) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLinks", ids, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteLinks indicates an expected call of DeleteLinks.
+func (mr *MockRepositoryMockRecorder) DeleteLinks(ids, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLinks", reflect.TypeOf((*MockRepository)(nil).DeleteLinks), ids, userID)
+}
+
 // GetOriginalURL mocks base method.
 func (m *MockRepository) GetOriginalURL(id string) model.Shorty {
 	m.ctrl.T.Helper()

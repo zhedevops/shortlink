@@ -33,6 +33,10 @@ func NewFileStorage(filepath string) *FileStorage {
 	}
 }
 
+func (fs *FileStorage) DeleteLinks(ids []string, userID uint32) error {
+	return nil
+}
+
 func (fs *FileStorage) SetShortURL(shortys *model.Shorty) error {
 	file, err := os.OpenFile(fs.filepath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {

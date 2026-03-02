@@ -136,6 +136,10 @@ func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	urlStr, err := h.service.GetOriginalURL(id)
 	if err != nil {
+		if errors.Is(err, model.ErrURLDeleted) {
+			http.Error(w, err.Error(), http.StatusGone)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -205,13 +209,32 @@ func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
+	user, err := h.handleCookie(w, r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var shortURLs []string
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&shortURLs); err != nil {
+		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		_ = r.Body.Close()
+	}()
+	go func() {
+		_ = h.service.DeleteLinks(shortURLs, user.ID)
+	}()
+	w.WriteHeader(http.StatusAccepted)
+}
+
 func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.User, error) {
 	cookieAuth, err := r.Cookie("Authorization")
 	var user = model.User{}
-	needCreate := false
-	if err != nil {
-		needCreate = true
-	}
+	needCreate := err != nil
+
 	if !needCreate {
 		user, err = h.service.CheckAuthCookie(cookieAuth)
 		if err != nil {

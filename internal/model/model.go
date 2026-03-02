@@ -13,6 +13,7 @@ type Shorty struct {
 	OriginalURL string    `json:"original_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	UserID      uint32    `json:"user_id"`
+	DeletedFlag bool      `json:"is_deleted"`
 }
 
 type Request struct {
@@ -49,6 +50,7 @@ type UserJWT struct {
 }
 
 var ErrConflict = errors.New("data conflict")
+var ErrURLDeleted = errors.New("url is deleted")
 
 func NewShortys(uuid string, url string, id string, userID uint32) *Shorty {
 	if uuid == "" {

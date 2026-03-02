@@ -41,7 +41,8 @@ func InitPostgres(pool *pgxpool.Pool) error {
 			short_url VARCHAR(8) NOT NULL,
 			original_url TEXT NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			user_id INT NOT NULL
+			user_id INT NOT NULL,
+			is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 		);
 
 		CREATE INDEX IF NOT EXISTS idx_shortys_short_url 

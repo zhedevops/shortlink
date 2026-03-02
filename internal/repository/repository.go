@@ -13,4 +13,5 @@ type Repository interface {
 	Ping(ctx context.Context) error
 	CreateUser() (model.User, error)
 	GetShortysByUser(userID uint32) ([]*model.Shorty, error)
+	DeleteLinks(ids []string, userID uint32) error
 }
