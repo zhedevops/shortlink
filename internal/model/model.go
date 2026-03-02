@@ -39,6 +39,11 @@ type ResponseUserLinks struct {
 	OriginalURL string `json:"original_url"`
 }
 
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
 type User struct {
 	ID        uint32    `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
