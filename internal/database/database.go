@@ -2,10 +2,13 @@ package database
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 )
 
 func ConnectDB(dsn string) (*pgxpool.Pool, error) {
@@ -33,22 +36,18 @@ func CloseDB(pool *pgxpool.Pool) {
 }
 
 func InitPostgres(pool *pgxpool.Pool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
+	env, _ := os.LookupEnv("ENVIRONMENT")
+	if env == "dev" {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
-	_, err := pool.Exec(ctx, `
-		CREATE TABLE IF NOT EXISTS shortys (
-			uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			short_url VARCHAR(8) NOT NULL,
-			original_url TEXT NOT NULL,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-		);
+	db := stdlib.OpenDBFromPool(pool)
+	defer db.Close()
 
-		CREATE INDEX IF NOT EXISTS idx_shortys_short_url 
-			ON shortys(short_url);
+	if err := goose.UpContext(ctx, db, "./migrations"); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
 
-		CREATE UNIQUE INDEX IF NOT EXISTS idx_shortys_original_url 
-			ON shortys(original_url);
-	`)
-
-	return err
+	return nil
 }

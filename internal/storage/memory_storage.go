@@ -14,6 +14,18 @@ func (ms *MemoryStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
+func (ms *MemoryStorage) CreateUser() (model.User, error) {
+	return model.User{}, nil
+}
+
+func (ms *MemoryStorage) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
+	return []*model.Shorty{}, nil
+}
+
+func (ms *MemoryStorage) DeleteLinks(ids []string, userID uint32) error {
+	return nil
+}
+
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		Store: make(map[string]string),

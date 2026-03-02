@@ -12,6 +12,8 @@ type Shorty struct {
 	ShortURL    string    `json:"short_url"`
 	OriginalURL string    `json:"original_url"`
 	CreatedAt   time.Time `json:"created_at"`
+	UserID      uint32    `json:"user_id"`
+	DeletedFlag bool      `json:"is_deleted"`
 }
 
 type Request struct {
@@ -32,9 +34,30 @@ type ResponseBatch struct {
 	ShortURL      string `json:"short_url"`
 }
 
-var ErrConflict = errors.New("data conflict")
+type ResponseUserLinks struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
 
-func NewShortys(uuid string, url string, id string) *Shorty {
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
+type User struct {
+	ID        uint32    `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type UserJWT struct {
+	UID uint32 `json:"uid"`
+	Exp int64  `json:"exp"`
+}
+
+var ErrConflict = errors.New("data conflict")
+var ErrURLDeleted = errors.New("url is deleted")
+
+func NewShortys(uuid string, url string, id string, userID uint32) *Shorty {
 	if uuid == "" {
 		uuid = guid.New().String()
 	}
@@ -42,5 +65,6 @@ func NewShortys(uuid string, url string, id string) *Shorty {
 		UUID:        uuid,
 		OriginalURL: url,
 		ShortURL:    id,
+		UserID:      userID,
 	}
 }

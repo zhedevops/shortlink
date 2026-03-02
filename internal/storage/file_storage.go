@@ -19,10 +19,22 @@ func (fs *FileStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
+func (fs *FileStorage) CreateUser() (model.User, error) {
+	return model.User{}, nil
+}
+
+func (fs *FileStorage) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
+	return []*model.Shorty{}, nil
+}
+
 func NewFileStorage(filepath string) *FileStorage {
 	return &FileStorage{
 		filepath: filepath,
 	}
+}
+
+func (fs *FileStorage) DeleteLinks(ids []string, userID uint32) error {
+	return nil
 }
 
 func (fs *FileStorage) SetShortURL(shortys *model.Shorty) error {

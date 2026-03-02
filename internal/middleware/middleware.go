@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+
 	"github.com/rs/zerolog/log"
 	"github.com/zhedevops/shortlink/internal/logger"
 

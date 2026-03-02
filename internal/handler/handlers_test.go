@@ -436,11 +436,15 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	m := mocks.NewMockRepository(ctrl)
+	user := model.User{
+		ID: 2,
+	}
 	value := model.Shorty{}
 	value2 := model.Shorty{
 		UUID:        "69cc5e9c-404e-47c3-b9cf-7222f0122e37",
 		OriginalURL: "http://zgvx7h.ru",
 		ShortURL:    "BGTHakFB",
+		UserID:      user.ID,
 	}
 	m.EXPECT().CheckIDByURL("http://dlf82a5xunr.net/vmzsxxp").Return(value)
 	m.EXPECT().CheckIDByURL("http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe").Return(value)
@@ -451,10 +455,10 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	m.EXPECT().GetOriginalURL("HLYMhqfn").Return(value)
 	m.EXPECT().GetOriginalURL("BGTHakFB").Return(value)
 	m.EXPECT().GetOriginalURL("npDieteQ").Return(value)
-	var shortys = model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy")
-	var shortys2 = model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn")
-	var shortys3 = model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB")
-	var shortys4 = model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ")
+	var shortys = model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
+	var shortys2 = model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
+	var shortys3 = model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
+	var shortys4 = model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
 	m.EXPECT().SetShortURL(shortys).Return(nil)
 	m.EXPECT().SetShortURL(shortys2).Return(nil)
 	m.EXPECT().SetShortURL(shortys3).Return(nil).Times(1)
@@ -463,6 +467,13 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	cnf := config.GetConfig()
 	srv := service.NewService(m)
 	h := &Handler{service: srv, Cfg: cnf}
+	ac := h.service.GetAuthCookie(user)
+	cookie := &http.Cookie{
+		Name:     "Authorization",
+		Value:    ac,
+		Path:     "/",
+		HttpOnly: true,
+	}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.With(middleware.RequireContentType("application/json")).HandleFunc(target, h.CreateShortLinkBatchHandler)
@@ -594,6 +605,7 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(tt.args.method, tt.args.target, strings.NewReader(tt.args.body))
 			request.Header.Add("Content-Type", tt.args.contentType)
+			request.AddCookie(cookie)
 			w := httptest.NewRecorder()
 			r.ServeHTTP(w, request)
 
