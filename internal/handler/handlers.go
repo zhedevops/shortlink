@@ -28,7 +28,7 @@ func NewHandler(s *service.Service, cnf *config.Config) *Handler {
 func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "handleCookie_failure", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	body, err := io.ReadAll(r.Body)
@@ -44,7 +44,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 			h.setErrorResponseOnConflict(w, link)
 			return
 		}
-		writeJSONError(w, http.StatusInternalServerError, "service_CreateShortLink_failure", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
@@ -59,13 +59,13 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "handleCookie_failure", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	var req model.Request
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "decode_body_failure", "cannot decode request JSON body")
+		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
 		return
 	}
 	defer r.Body.Close()
@@ -76,7 +76,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 			h.setShortenErrorResponseOnConflict(w, link)
 			return
 		}
-		writeJSONError(w, http.StatusInternalServerError, "service_CreateShortLink_failure", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	respLink := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
@@ -94,7 +94,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "handleCookie_failure", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	var req []model.RequestBatch
@@ -109,7 +109,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
 		link, err := h.service.CreateShortLink(shortys)
 		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, "service_CreateShortLink_failure", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		resp = append(resp, model.ResponseBatch{

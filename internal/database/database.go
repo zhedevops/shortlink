@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -35,6 +36,10 @@ func CloseDB(pool *pgxpool.Pool) {
 }
 
 func InitPostgres(pool *pgxpool.Pool) error {
+	env, _ := os.LookupEnv("ENVIRONMENT")
+	if env == "dev" {
+		return nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
 	db := stdlib.OpenDBFromPool(pool)
