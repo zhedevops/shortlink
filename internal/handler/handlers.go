@@ -5,23 +5,29 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
+	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
+	"github.com/zhedevops/shortlink/internal/container"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/service"
 )
 
 type Handler struct {
+	audit   *audit.AuditService
 	service *service.Service
 	Cfg     *config.Config
 }
 
-func NewHandler(s *service.Service, cnf *config.Config) *Handler {
+func NewHandler(app *container.App) *Handler {
 	return &Handler{
-		service: s,
-		Cfg:     cnf,
+		audit:   app.Audit,
+		service: app.Service,
+		Cfg:     app.Config,
 	}
 }
 
@@ -54,6 +60,12 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write response")
 	}
+	h.audit.Send(audit.AuditEvent{
+		UserID:    strconv.Itoa(int(user.ID)),
+		Action:    audit.ActionShorten,
+		URL:       link.OriginalURL,
+		Timestamp: time.Now(),
+	})
 }
 
 func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +101,12 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	if err = encoder.Encode(resp); err != nil {
 		log.Error().Err(err).Msg("error encoding response")
 	}
+	h.audit.Send(audit.AuditEvent{
+		UserID:    strconv.Itoa(int(user.ID)),
+		Action:    audit.ActionShorten,
+		URL:       link.OriginalURL,
+		Timestamp: time.Now(),
+	})
 }
 
 func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
@@ -139,6 +157,12 @@ func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", urlStr)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+	h.audit.Send(audit.AuditEvent{
+		UserID:    "",
+		Action:    audit.ActionFollow,
+		URL:       urlStr,
+		Timestamp: time.Now(),
+	})
 }
 
 func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {

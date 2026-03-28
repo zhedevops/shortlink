@@ -18,6 +18,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/middleware"
@@ -35,7 +36,9 @@ func TestCreateShortLinkHandler(t *testing.T) {
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.GzipHandle)
 	r.With(middleware.RequireContentType("text/plain")).HandleFunc("/", h.CreateShortLinkHandler)
@@ -149,13 +152,16 @@ func TestCreateShortLinkHandler(t *testing.T) {
 }
 
 func TestGetLinkByIDHandler(t *testing.T) {
+	cnf := config.GetConfig()
 	fileName := "../../data/files/defaultpath/test.json"
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
-	h := &Handler{service: srv}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	shortID := "ZMFazWTA"
 	originalURL := "https://ria.ru/"
 	var shortys = &model.Shorty{
@@ -260,7 +266,9 @@ func TestCreateShortLinkEncHandler(t *testing.T) {
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.With(middleware.RequireContentType("application/json")).HandleFunc(target, h.CreateShortLinkEncHandler)
@@ -399,7 +407,9 @@ func TestHandler_PingHandler(t *testing.T) {
 	a.IsType(&pgxpool.Pool{}, pool)
 	st := storage.NewDBStorage(pool)
 	srv := service.NewService(st)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.HandleFunc("/ping", h.PingHandler)
 	t.Run("Pool opened. Ping ok", func(t *testing.T) {
@@ -466,7 +476,9 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	var target = "/api/shorten/batch"
 	cnf := config.GetConfig()
 	srv := service.NewService(m)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	ac := h.service.GetAuthCookie(user)
 	cookie := &http.Cookie{
 		Name:     "Authorization",

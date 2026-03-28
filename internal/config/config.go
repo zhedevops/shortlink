@@ -27,6 +27,8 @@ type EnvParams struct {
 	LogLevel        *string `env:"LOG_LEVEL"`
 	FileStoragePath *string `env:"FILE_STORAGE_PATH"`
 	DatabaseDsn     *string `env:"DATABASE_DSN"`
+	AuditFile       *string `env:"AUDIT_FILE"`
+	AuditURL        *string `env:"AUDIT_URL"`
 }
 
 type Config struct {
@@ -35,6 +37,8 @@ type Config struct {
 	LogLevel        string
 	FileStoragePath string
 	DatabaseDsn     string
+	AuditFile       string
+	AuditURL        string
 }
 
 var cfg = &Config{
@@ -112,6 +116,14 @@ func parseEnvParams() {
 	if params.DatabaseDsn != nil {
 		cfg.DatabaseDsn = *params.DatabaseDsn
 	}
+
+	if params.AuditFile != nil {
+		cfg.AuditFile = *params.AuditFile
+	}
+
+	if params.AuditURL != nil {
+		cfg.AuditURL = *params.AuditURL
+	}
 }
 
 func SetConfigByFlag() {
@@ -120,5 +132,7 @@ func SetConfigByFlag() {
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
 	flag.StringVar(&cfg.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "db dsn")
+	flag.StringVar(&cfg.AuditFile, "audit-file", "", "audit-file")
+	flag.StringVar(&cfg.AuditURL, "audit-url", "", "audit-url")
 	flag.Parse()
 }
