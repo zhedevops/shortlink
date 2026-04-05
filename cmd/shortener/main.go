@@ -20,9 +20,22 @@ import (
 )
 
 func main() {
+	// Для профилирования CPU используем этот код
+	//f, err := os.Create("result.pprof")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//_ = pprof.StartCPUProfile(f)
+	//defer pprof.StopCPUProfile()
+
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
+	// Для профилирования потребления памяти используем этот код
+	//ff, _ := os.Create("heap.pprof")
+	//_ = pprof.WriteHeapProfile(ff)
+	//_ = ff.Close()
 }
 
 func run() error {

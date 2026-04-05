@@ -186,3 +186,53 @@ func TestServiceFuncs(t *testing.T) {
 		assert.Empty(t, mu)
 	})
 }
+
+func BenchmarkService(b *testing.B) {
+	fileName := "../../data/files/defaultpath/test.json"
+	defer func() {
+		_ = os.Remove(fileName)
+	}()
+	fs := storage.NewFileStorage(fileName)
+	srv := NewService(fs)
+	var user = model.User{
+		ID: 1,
+	}
+	var value string
+	var shortys = &model.Shorty{
+		OriginalURL: "https://ria.ru/",
+	}
+	b.ResetTimer()
+	b.Run("CreateShortLink", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = srv.CreateShortLink(shortys)
+		}
+	})
+	b.Run("getShort", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = srv.getShort("http://test.com", 100)
+		}
+	})
+	b.Run("GetOriginalURL", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = srv.GetOriginalURL("CZAqzwap")
+		}
+	})
+	b.Run("GetAuthCookie", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			value = srv.GetAuthCookie(user)
+		}
+	})
+	b.Run("CheckAuthCookie", func(b *testing.B) {
+		b.StopTimer()
+		cookie := &http.Cookie{
+			Name:     "Authorization",
+			Value:    value,
+			Path:     "/",
+			HttpOnly: true,
+		}
+		b.StartTimer()
+		for i := 0; i < b.N; i++ {
+			_, _ = srv.CheckAuthCookie(cookie)
+		}
+	})
+}
