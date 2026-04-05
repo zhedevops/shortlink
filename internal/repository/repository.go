@@ -1,3 +1,4 @@
+// Package repository Обеспечивает создание, получение, редактирование и удаление информации по ссылкам.
 package repository
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/zhedevops/shortlink/internal/model"
 )
 
+// Repository Интерфейс хранилища информации о ссылках.
 type Repository interface {
 	SetShortURL(shortys *model.Shorty) error
 	GetOriginalURL(id string) model.Shorty

@@ -1,3 +1,4 @@
+// Package service Сервис, отвечающий за обработку запросов обработчика.
 package service
 
 import (
@@ -29,10 +30,12 @@ type Service struct {
 	repo repository.Repository
 }
 
+// NewService Создаёт сервис.
 func NewService(r repository.Repository) *Service {
 	return &Service{repo: r}
 }
 
+// CreateShortLink Создаёт короткую ссылку.
 func (srv *Service) CreateShortLink(shortys *model.Shorty) (*model.Shorty, error) {
 	urlStr := strings.TrimSpace(shortys.OriginalURL)
 	if len(urlStr) == 0 {
@@ -63,6 +66,7 @@ func (srv *Service) CreateShortLink(shortys *model.Shorty) (*model.Shorty, error
 	return shortys, nil
 }
 
+// GetOriginalURL Получает оригинальную ссылку.
 func (srv *Service) GetOriginalURL(id string) (string, error) {
 	if len(id) != 8 {
 		return "", errors.New("unexpected length id")
@@ -81,10 +85,12 @@ func (srv *Service) Ping(ctx context.Context) error {
 	return srv.repo.Ping(ctx)
 }
 
+// GetNewUser Создаёт нового пользователя.
 func (srv *Service) GetNewUser() (model.User, error) {
 	return srv.repo.CreateUser()
 }
 
+// CheckAuthCookie Проверяет авторизационную cookie.
 func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error) {
 	user := model.User{}
 	ujwt := model.UserJWT{}
@@ -116,6 +122,7 @@ func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error)
 	return user, nil
 }
 
+// GetAuthCookie Создаёт авторизационную cookie.
 func (srv *Service) GetAuthCookie(user model.User) string {
 	userJWT := model.UserJWT{
 		UID: user.ID,
@@ -128,10 +135,12 @@ func (srv *Service) GetAuthCookie(user model.User) string {
 	return base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)
 }
 
+// GetUserLinks Получает все ссылки пользователя.
 func (srv *Service) GetUserLinks(userID uint32) ([]*model.Shorty, error) {
 	return srv.repo.GetShortysByUser(userID)
 }
 
+// DeleteLinks Удаляет ссылки пользователя по списку.
 func (srv *Service) DeleteLinks(URLs []string, userID uint32) error {
 	inputCh := deleteLinksFanIn(URLs)
 	var ids []string

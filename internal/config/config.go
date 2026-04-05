@@ -1,3 +1,4 @@
+// Package config Конфигурация сервиса.
 package config
 
 import (
@@ -33,6 +34,7 @@ type EnvParams struct {
 	AuditURL        *string `env:"AUDIT_URL"`
 }
 
+// Config Тип конфигурации, содержащий всё необходимую информацю для работы сервиса.
 type Config struct {
 	ServerAddr      *netAddress
 	ResponseAddr    *netAddress
@@ -75,11 +77,13 @@ func (addr *netAddress) Set(flagVal string) error {
 	return nil
 }
 
+// SetConfig Устанавливает конфигурацию.
 func SetConfig() {
 	SetConfigByFlag()
 	parseEnvParams()
 }
 
+// GetConfig Возвращает конфигурацию.
 func GetConfig() *Config {
 	return cfg
 }
@@ -127,6 +131,7 @@ func parseEnvParams() {
 	}
 }
 
+// SetConfigByFlag Осуществляет установку значений конфигурации из переданных флагов.
 func SetConfigByFlag() {
 	flag.Var(cfg.ServerAddr, "a", "server address host:port")
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")

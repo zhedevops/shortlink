@@ -1,3 +1,4 @@
+// Package logger Логгер.
 package logger
 
 import (
@@ -22,6 +23,7 @@ type (
 	}
 )
 
+// Initialize Инициализация логгера. Необходимо передать только уровень логирования.
 func Initialize(level string) error {
 	levels := map[string]zerolog.Level{
 		"debug": zerolog.DebugLevel,

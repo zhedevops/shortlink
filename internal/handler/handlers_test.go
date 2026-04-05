@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -637,4 +638,83 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeRepo struct{}
+
+func (f *fakeRepo) GetOriginalURL(id string) model.Shorty {
+	return model.Shorty{}
+}
+
+func (f *fakeRepo) CheckIDByURL(url string) model.Shorty {
+	shortys := model.Shorty{
+		UUID:        "d51eae65-0408-4d2d-997d-989f77f26e71",
+		OriginalURL: "http://dlf82a5xunr.net/vmzsxxp",
+		ShortURL:    "qknZDqRy",
+		UserID:      2,
+	}
+	return shortys
+}
+
+func (f *fakeRepo) SetShortURL(shortys *model.Shorty) error {
+	return nil
+}
+
+func (f *fakeRepo) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (f *fakeRepo) CreateUser() (model.User, error) {
+	return model.User{}, nil
+}
+
+func (f *fakeRepo) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
+	return []*model.Shorty{}, nil
+}
+
+func (f *fakeRepo) DeleteLinks(ids []string, userID uint32) error {
+	return nil
+}
+
+// Пример создания короткой ссылки.
+func ExampleHandler_CreateShortLinkHandler() {
+	// Создаём пользователя
+	user := model.User{ID: 2}
+	// Создаём обработчик с зависимостями
+	cnf := config.GetConfig()
+	// Для примера используем фейковый репозиторий, метод которого CheckIDByURL будет возвращать такой ответ:
+	//  model.Shorty{
+	//		UUID:        "d51eae65-0408-4d2d-997d-989f77f26e71",
+	//		OriginalURL: "http://dlf82a5xunr.net/vmzsxxp",
+	//		ShortURL:    "qknZDqRy",
+	//		UserID:      2,
+	//	}
+	srv := service.NewService(&fakeRepo{})
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
+	// Создаём cookie для пользователя
+	ac := h.service.GetAuthCookie(user)
+	cookie := &http.Cookie{
+		Name:     "Authorization",
+		Value:    ac,
+		Path:     "/",
+		HttpOnly: true,
+	}
+
+	// Создаём запрос
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString("http://dlf82a5xunr.net/vmzsxxp"))
+	// Добавляем в запрос cookie
+	req.AddCookie(cookie)
+	w := httptest.NewRecorder()
+
+	// Вызываем метод обработчика
+	h.CreateShortLinkHandler(w, req)
+
+	resp := w.Result()
+
+	fmt.Println(resp.StatusCode)
+
+	// Output:
+	// 201
 }

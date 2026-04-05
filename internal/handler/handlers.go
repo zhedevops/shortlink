@@ -1,3 +1,4 @@
+// Package handler Обработчик API запросов
 package handler
 
 import (
@@ -17,12 +18,17 @@ import (
 	"github.com/zhedevops/shortlink/internal/service"
 )
 
+// Handler Тип обработчика
 type Handler struct {
-	audit   *audit.AuditService
+	// audit Сервис аудита.
+	audit *audit.AuditService
+	// service Сервис, отвечающий за обработку запросов обработчика.
 	service *service.Service
-	Cfg     *config.Config
+	// Cfg Конфигурация.
+	Cfg *config.Config
 }
 
+// NewHandler Создаёт новый обработчик
 func NewHandler(app *container.App) *Handler {
 	return &Handler{
 		audit:   app.Audit,
@@ -31,6 +37,7 @@ func NewHandler(app *container.App) *Handler {
 	}
 }
 
+// CreateShortLinkHandler Создаёт короткую ссылку для адреса
 func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -67,6 +74,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// CreateShortLinkEncHandler Создаёт короткую ссылку из запроса с json-телом
 func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -108,6 +116,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// CreateShortLinkBatchHandler Осущестляет пакетную обработку запроса, принимая в теле запроса множество ссылок
 func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -143,6 +152,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// GetLinkByIDHandler Получает оригинальную ссылку по короткой
 func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	urlStr, err := h.service.GetOriginalURL(id)
@@ -164,6 +174,7 @@ func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PingHandler Осуществляет пинг сервера
 func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if err := h.service.Ping(ctx); err != nil {
@@ -173,6 +184,7 @@ func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// UserLinksHandler Получает все ссылки, сгенерированные пользователем
 func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -202,6 +214,7 @@ func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteLinkBatchHandler Осуществляет пакетное удаление оригинальных ссылок по полученным коротким ссылкам
 func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {

@@ -1,3 +1,4 @@
+// Сервис сокращения URL
 package main
 
 import (
