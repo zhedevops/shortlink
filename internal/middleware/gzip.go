@@ -53,7 +53,7 @@ func (gzr *gzipReader) Close() error {
 }
 
 func isAllowedContentType(r *http.Request) bool {
-	var ct = r.Header.Get("Content-Type")
+	ct := r.Header.Get("Content-Type")
 	if _, ok := allowedContentTypes[ct]; ok {
 		return true
 	}

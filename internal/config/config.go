@@ -13,8 +13,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var scheme = "http://"
-var defaultAddress = "localhost:8080"
+var (
+	scheme         = "http://"
+	defaultAddress = "localhost:8080"
+)
 
 type netAddress struct {
 	ServerAddress string
@@ -85,8 +87,7 @@ func GetConfig() *Config {
 func parseEnvParams() {
 	_ = godotenv.Load(".env")
 	var params EnvParams
-	err := env.Parse(&params)
-	if err != nil {
+	if err := env.Parse(&params); err != nil {
 		log.Fatal(err)
 	}
 

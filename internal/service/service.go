@@ -54,33 +54,13 @@ func (srv *Service) CreateShortLink(shortys *model.Shorty) (*model.Shorty, error
 		return nil, fmt.Errorf("failed create short link: %w", err)
 	}
 	shortys.ShortURL = id
-	err = srv.repo.SetShortURL(shortys)
-	if err != nil {
+	if err = srv.repo.SetShortURL(shortys); err != nil {
 		if errors.Is(err, model.ErrConflict) {
 			return shortys, err
 		}
 		return nil, fmt.Errorf("failed set short link: %w", err)
 	}
 	return shortys, nil
-}
-
-func (srv *Service) getShort(url string, attempt int) (string, error) {
-	if attempt >= maxAttempts {
-		return "", errors.New("failed to generate unique short url with max attempts")
-	}
-	hash := sha1.Sum([]byte(url))
-	b := hash[:8]
-	res := make([]byte, 8)
-	for i := 0; i < 8; i++ {
-		res[i] = chars[b[i]%52]
-	}
-	strID := string(res)
-	existingShortys := srv.repo.GetOriginalURL(strID)
-	if existingShortys.OriginalURL != "" && existingShortys.OriginalURL != url {
-		ns := strconv.FormatInt(time.Now().UnixNano(), 10)
-		return srv.getShort(url+ns, attempt+1)
-	}
-	return strID, nil
 }
 
 func (srv *Service) GetOriginalURL(id string) (string, error) {
@@ -126,8 +106,7 @@ func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error)
 	if !hmac.Equal(sign, signature) {
 		return user, errors.New("signature verification failed")
 	}
-	err = json.Unmarshal(jwtData, &ujwt)
-	if err != nil {
+	if err = json.Unmarshal(jwtData, &ujwt); err != nil {
 		return user, errors.New("unmarshal user data failed")
 	}
 	if ujwt.Exp < time.Now().Unix() {
@@ -161,6 +140,25 @@ func (srv *Service) DeleteLinks(URLs []string, userID uint32) error {
 	}
 
 	return srv.repo.DeleteLinks(ids, userID)
+}
+
+func (srv *Service) getShort(url string, attempt int) (string, error) {
+	if attempt >= maxAttempts {
+		return "", errors.New("failed to generate unique short url with max attempts")
+	}
+	hash := sha1.Sum([]byte(url))
+	b := hash[:8]
+	res := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		res[i] = chars[b[i]%52]
+	}
+	strID := string(res)
+	existingShortys := srv.repo.GetOriginalURL(strID)
+	if existingShortys.OriginalURL != "" && existingShortys.OriginalURL != url {
+		ns := strconv.FormatInt(time.Now().UnixNano(), 10)
+		return srv.getShort(url+ns, attempt+1)
+	}
+	return strID, nil
 }
 
 func deleteLinksFanIn(URLs []string) chan string {

@@ -42,3 +42,36 @@ git fetch template && git checkout template/v2 .github
 - **Clean Architecture**
 - **Hexagonal Architecture**
 - **Layered Architecture**
+
+### Результат оптимизации:
+go tool pprof -top -diff_base=profiles/base.pprof profiles/result.pprof
+
+File: shortener
+
+Build ID: f1187321500581560d909d4fa6f269c9cd2ce625
+
+Type: cpu
+
+Time: 2026-04-04 16:03:10 MSK
+
+Duration: 17.16s, Total samples = 160ms ( 0.93%)
+
+Showing nodes accounting for -70ms, 43.75% of 160ms total
+
+flat  flat%   sum%        cum   cum%
+
+0     0% 43.75%      -10ms  6.25%  github.com/zhedevops/shortlink/internal/handler.(*Handler).CreateShortLinkHandler
+
+0     0% 43.75%      -10ms  6.25%  github.com/zhedevops/shortlink/internal/handler.(*Handler).GetLinkByIDHandler
+
+0     0% 43.75%      -20ms 12.50%  github.com/zhedevops/shortlink/internal/middleware.GzipHandle.func1
+
+0     0% 43.75%      -20ms 12.50%  github.com/zhedevops/shortlink/internal/middleware.Logger.func1
+
+0     0% 43.75%      -10ms  6.25%  github.com/zhedevops/shortlink/internal/model.NewShortys
+
+0     0% 43.75%      -10ms  6.25%  github.com/zhedevops/shortlink/internal/router.NewRouter.RequireContentType.func1.1
+
+0     0% 43.75%      -10ms  6.25%  github.com/zhedevops/shortlink/internal/service.(*Service).GetOriginalURL
+
+0     0% 43.75%      -10ms  6.25%  github.com/zhedevops/shortlink/internal/storage.(*DBStorage).GetOriginalURL

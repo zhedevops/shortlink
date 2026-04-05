@@ -23,7 +23,7 @@ type (
 )
 
 func Initialize(level string) error {
-	var levels = map[string]zerolog.Level{
+	levels := map[string]zerolog.Level{
 		"debug": zerolog.DebugLevel,
 		"info":  zerolog.InfoLevel,
 		"warn":  zerolog.WarnLevel,

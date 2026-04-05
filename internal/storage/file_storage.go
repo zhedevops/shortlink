@@ -16,6 +16,7 @@ type FileStorage struct {
 }
 
 func (fs *FileStorage) Ping(ctx context.Context) error {
+	_ = ctx
 	return nil
 }
 
@@ -24,7 +25,8 @@ func (fs *FileStorage) CreateUser() (model.User, error) {
 }
 
 func (fs *FileStorage) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
-	return []*model.Shorty{}, nil
+	_ = userID
+	return nil, nil
 }
 
 func NewFileStorage(filepath string) *FileStorage {
@@ -34,6 +36,8 @@ func NewFileStorage(filepath string) *FileStorage {
 }
 
 func (fs *FileStorage) DeleteLinks(ids []string, userID uint32) error {
+	_ = ids
+	_ = userID
 	return nil
 }
 
@@ -72,16 +76,13 @@ func (fs *FileStorage) SetShortURL(shortys *model.Shorty) error {
 	}
 
 	if next == 1 {
-		_, err = file.WriteString("[\n  ")
-		if err != nil {
+		if _, err := file.WriteString("[\n  "); err != nil {
 			return err
 		}
-		_, err = file.Write(data)
-		if err != nil {
+		if _, err := file.Write(data); err != nil {
 			return err
 		}
-		_, err = file.WriteString("\n]")
-		if err != nil {
+		if _, err := file.WriteString("\n]"); err != nil {
 			return err
 		}
 

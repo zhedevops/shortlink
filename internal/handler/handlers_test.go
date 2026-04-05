@@ -164,7 +164,7 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	shortID := "ZMFazWTA"
 	originalURL := "https://ria.ru/"
-	var shortys = &model.Shorty{
+	shortys := &model.Shorty{
 		OriginalURL: "https://ria.ru/",
 	}
 	_, err := srv.CreateShortLink(shortys)
@@ -251,9 +251,9 @@ func TestGetLinkByIDHandler(t *testing.T) {
 
 func TestCreateShortLinkEncHandler(t *testing.T) {
 	cnf := config.GetConfig()
-	var target = "/api/shorten"
+	target := "/api/shorten"
 	respLink := cnf.ResponseAddr.ServerAddress + "/CSaEMooR"
-	var resp = model.Response{
+	resp := model.Response{
 		Result: respLink,
 	}
 	var buf bytes.Buffer
@@ -465,15 +465,15 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	m.EXPECT().GetOriginalURL("HLYMhqfn").Return(value)
 	m.EXPECT().GetOriginalURL("BGTHakFB").Return(value)
 	m.EXPECT().GetOriginalURL("npDieteQ").Return(value)
-	var shortys = model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
-	var shortys2 = model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
-	var shortys3 = model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
-	var shortys4 = model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
+	shortys := model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
+	shortys2 := model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
+	shortys3 := model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
+	shortys4 := model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
 	m.EXPECT().SetShortURL(shortys).Return(nil)
 	m.EXPECT().SetShortURL(shortys2).Return(nil)
 	m.EXPECT().SetShortURL(shortys3).Return(nil).Times(1)
 	m.EXPECT().SetShortURL(shortys4).Return(errors.New("db error")).Times(1)
-	var target = "/api/shorten/batch"
+	target := "/api/shorten/batch"
 	cnf := config.GetConfig()
 	srv := service.NewService(m)
 	var sinks []audit.AuditSink

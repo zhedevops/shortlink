@@ -33,13 +33,15 @@ type AuditSink interface {
 }
 
 type FileSink struct {
+	Mu sync.Mutex // для безопасной записи из нескольких горутин
+
 	Path string
-	Mu   sync.Mutex // для безопасной записи из нескольких горутин
 }
 
 type RemoteSink struct {
-	URL    string
 	Client *http.Client
+
+	URL string
 }
 
 func NewAuditService(sinks []AuditSink) *AuditService {
@@ -86,8 +88,7 @@ func (fs *FileSink) Consume(e AuditEvent) {
 		return
 	}
 
-	_, err = file.Write(append(data, '\n'))
-	if err != nil {
+	if _, err = file.Write(append(data, '\n')); err != nil {
 		log.Error().Err(err).Msg("audit: write failed")
 		return
 	}

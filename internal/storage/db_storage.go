@@ -47,28 +47,22 @@ func (dbs *DBStorage) SetShortURL(shortys *model.Shorty) error {
 func (dbs *DBStorage) GetOriginalURL(id string) model.Shorty {
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
-	row, err := dbs.db.Query(ctx, `SELECT * FROM shortys WHERE short_url = $1`, id)
-	if err != nil {
-		return model.Shorty{}
-	}
-	defer row.Close()
+	row := dbs.db.QueryRow(ctx, `SELECT * FROM shortys WHERE short_url = $1`, id)
 	var shortys model.Shorty
-	if row.Next() {
-		err = row.Scan(
-			&shortys.UUID,
-			&shortys.ShortURL,
-			&shortys.OriginalURL,
-			&shortys.CreatedAt,
-			&shortys.UserID,
-			&shortys.DeletedFlag)
-		if err != nil {
-			return model.Shorty{}
-		}
+	if err := row.Scan(
+		&shortys.UUID,
+		&shortys.ShortURL,
+		&shortys.OriginalURL,
+		&shortys.CreatedAt,
+		&shortys.UserID,
+		&shortys.DeletedFlag); err != nil {
+		return model.Shorty{}
 	}
 	return shortys
 }
 
 func (dbs *DBStorage) CheckIDByURL(url string) model.Shorty {
+	_ = url
 	return model.Shorty{}
 }
 
@@ -77,15 +71,17 @@ func (dbs *DBStorage) Ping(ctx context.Context) error {
 }
 
 func (dbs *DBStorage) CreateUser() (model.User, error) {
-	var user = model.User{}
+	user := model.User{}
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
 	tx, err := dbs.db.Begin(ctx)
 	if err != nil {
 		return user, err
 	}
-	err = tx.QueryRow(ctx, `INSERT INTO users DEFAULT VALUES RETURNING id, created_at;`).Scan(&user.ID, &user.CreatedAt)
-	if err != nil {
+	if err := tx.QueryRow(
+		ctx,
+		`INSERT INTO users DEFAULT VALUES RETURNING id, created_at;`,
+	).Scan(&user.ID, &user.CreatedAt); err != nil {
 		_ = tx.Rollback(ctx)
 		return user, err
 	}
@@ -119,8 +115,12 @@ func (dbs *DBStorage) DeleteLinks(ids []string, userID uint32) error {
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `UPDATE shortys SET is_deleted = true WHERE short_url = ANY($1) AND user_id = $2`, ids, userID)
-	if err != nil {
+	if _, err = tx.Exec(
+		ctx,
+		`UPDATE shortys SET is_deleted = true WHERE short_url = ANY($1) AND user_id = $2`,
+		ids,
+		userID,
+	); err != nil {
 		_ = tx.Rollback(ctx)
 		return err
 	}

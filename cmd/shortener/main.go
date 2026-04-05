@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"time"
@@ -21,13 +23,13 @@ import (
 
 func main() {
 	// Для профилирования CPU используем этот код
-	//f, err := os.Create("result.pprof")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//_ = pprof.StartCPUProfile(f)
-	//defer pprof.StopCPUProfile()
+	f, err := os.Create("result.pprof")
+	if err != nil {
+		panic(err)
+	}
+
+	_ = pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 
 	if err := run(); err != nil {
 		log.Fatal(err)

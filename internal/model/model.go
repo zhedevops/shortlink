@@ -54,8 +54,10 @@ type UserJWT struct {
 	Exp int64  `json:"exp"`
 }
 
-var ErrConflict = errors.New("data conflict")
-var ErrURLDeleted = errors.New("url is deleted")
+var (
+	ErrConflict   = errors.New("data conflict")
+	ErrURLDeleted = errors.New("url is deleted")
+)
 
 func NewShortys(uuid string, url string, id string, userID uint32) *Shorty {
 	if uuid == "" {

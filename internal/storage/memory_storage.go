@@ -11,6 +11,7 @@ type MemoryStorage struct {
 }
 
 func (ms *MemoryStorage) Ping(ctx context.Context) error {
+	_ = ctx
 	return nil
 }
 
@@ -19,10 +20,13 @@ func (ms *MemoryStorage) CreateUser() (model.User, error) {
 }
 
 func (ms *MemoryStorage) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
-	return []*model.Shorty{}, nil
+	_ = userID
+	return nil, nil
 }
 
 func (ms *MemoryStorage) DeleteLinks(ids []string, userID uint32) error {
+	_ = ids
+	_ = userID
 	return nil
 }
 

@@ -45,7 +45,7 @@ func Logger(h http.Handler) http.Handler {
 			Timestamp().
 			Str("uri", uri).
 			Str("method", method).
-			Str("duration", fmt.Sprint(duration)).
+			Str("duration", duration.String()).
 			Int("status", status).
 			Int("size", size).
 			Send()

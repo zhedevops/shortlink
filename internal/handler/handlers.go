@@ -43,7 +43,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer r.Body.Close()
-	var shortys = model.NewShortys("", string(body), "", user.ID)
+	shortys := model.NewShortys("", string(body), "", user.ID)
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
@@ -56,8 +56,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(resp))
-	if err != nil {
+	if _, err = w.Write([]byte(resp)); err != nil {
 		log.Error().Err(err).Msg("failed to write response")
 	}
 	h.audit.Send(audit.AuditEvent{
@@ -81,7 +80,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	defer r.Body.Close()
-	var shortys = model.NewShortys("", req.URL, "", user.ID)
+	shortys := model.NewShortys("", req.URL, "", user.ID)
 	link, err := h.service.CreateShortLink(shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
@@ -92,7 +91,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	respLink := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
-	var resp = model.Response{
+	resp := model.Response{
 		Result: respLink,
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -124,7 +123,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 	defer r.Body.Close()
 	resp := []model.ResponseBatch{}
 	for _, rb := range req {
-		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
+		shortys := model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
 		link, err := h.service.CreateShortLink(shortys)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -167,35 +166,11 @@ func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := h.service.Ping(ctx)
-	if err != nil {
+	if err := h.service.Ping(ctx); err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "service_Ping_failure", err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusConflict)
-
-	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
-	_, err := w.Write([]byte(resp))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to write response")
-	}
-}
-
-func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusConflict)
-	var resp = model.Response{
-		Result: h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
-	}
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(resp); err != nil {
-		log.Error().Err(err).Msg("error encoding response")
-	}
 }
 
 func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
@@ -248,7 +223,7 @@ func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request)
 
 func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.User, error) {
 	cookieAuth, err := r.Cookie("Authorization")
-	var user = model.User{}
+	user := model.User{}
 	needCreate := err != nil
 
 	if !needCreate {
@@ -271,6 +246,28 @@ func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.Us
 		})
 	}
 	return user, nil
+}
+
+func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusConflict)
+
+	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
+	if _, err := w.Write([]byte(resp)); err != nil {
+		log.Error().Err(err).Msg("failed to write response")
+	}
+}
+
+func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusConflict)
+	resp := model.Response{
+		Result: h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
+	}
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		log.Error().Err(err).Msg("error encoding response")
+	}
 }
 
 func writeJSONError(w http.ResponseWriter, status int, errCode, msg string) {

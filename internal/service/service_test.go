@@ -23,13 +23,13 @@ func TestServiceFuncs(t *testing.T) {
 	fs := storage.NewFileStorage(fileName)
 	srv := NewService(fs)
 	url := "https://example.com"
-	var user = model.User{
+	user := model.User{
 		ID: 1,
 	}
-	var user2 = model.User{
+	user2 := model.User{
 		ID: 2,
 	}
-	var shortys = model.NewShortys("", url, "", user.ID)
+	shortys := model.NewShortys("", url, "", user.ID)
 	var value string
 
 	t.Run("test CreateShortLink from url", func(t *testing.T) {
@@ -194,11 +194,11 @@ func BenchmarkService(b *testing.B) {
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := NewService(fs)
-	var user = model.User{
+	user := model.User{
 		ID: 1,
 	}
 	var value string
-	var shortys = &model.Shorty{
+	shortys := &model.Shorty{
 		OriginalURL: "https://ria.ru/",
 	}
 	b.ResetTimer()
