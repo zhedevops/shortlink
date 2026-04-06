@@ -50,61 +50,61 @@ func (mr *MockRepositoryMockRecorder) CheckIDByURL(url interface{}) *gomock.Call
 }
 
 // CreateUser mocks base method.
-func (m *MockRepository) CreateUser() (model.User, error) {
+func (m *MockRepository) CreateUser(ctx context.Context) (model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUser")
+	ret := m.ctrl.Call(m, "CreateUser", ctx)
 	ret0, _ := ret[0].(model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateUser indicates an expected call of CreateUser.
-func (mr *MockRepositoryMockRecorder) CreateUser() *gomock.Call {
+func (mr *MockRepositoryMockRecorder) CreateUser(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockRepository)(nil).CreateUser))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockRepository)(nil).CreateUser), ctx)
 }
 
 // DeleteLinks mocks base method.
-func (m *MockRepository) DeleteLinks(ids []string, userID uint32) error {
+func (m *MockRepository) DeleteLinks(ctx context.Context, ids []string, userID uint32) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteLinks", ids, userID)
+	ret := m.ctrl.Call(m, "DeleteLinks", ctx, ids, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteLinks indicates an expected call of DeleteLinks.
-func (mr *MockRepositoryMockRecorder) DeleteLinks(ids, userID interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) DeleteLinks(ctx, ids, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLinks", reflect.TypeOf((*MockRepository)(nil).DeleteLinks), ids, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLinks", reflect.TypeOf((*MockRepository)(nil).DeleteLinks), ctx, ids, userID)
 }
 
 // GetOriginalURL mocks base method.
-func (m *MockRepository) GetOriginalURL(id string) model.Shorty {
+func (m *MockRepository) GetOriginalURL(ctx context.Context, id string) model.Shorty {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOriginalURL", id)
+	ret := m.ctrl.Call(m, "GetOriginalURL", ctx, id)
 	ret0, _ := ret[0].(model.Shorty)
 	return ret0
 }
 
 // GetOriginalURL indicates an expected call of GetOriginalURL.
-func (mr *MockRepositoryMockRecorder) GetOriginalURL(id interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetOriginalURL(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOriginalURL", reflect.TypeOf((*MockRepository)(nil).GetOriginalURL), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOriginalURL", reflect.TypeOf((*MockRepository)(nil).GetOriginalURL), ctx, id)
 }
 
 // GetShortysByUser mocks base method.
-func (m *MockRepository) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
+func (m *MockRepository) GetShortysByUser(ctx context.Context, userID uint32) ([]*model.Shorty, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetShortysByUser", userID)
+	ret := m.ctrl.Call(m, "GetShortysByUser", ctx, userID)
 	ret0, _ := ret[0].([]*model.Shorty)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetShortysByUser indicates an expected call of GetShortysByUser.
-func (mr *MockRepositoryMockRecorder) GetShortysByUser(userID interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetShortysByUser(ctx, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetShortysByUser", reflect.TypeOf((*MockRepository)(nil).GetShortysByUser), userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetShortysByUser", reflect.TypeOf((*MockRepository)(nil).GetShortysByUser), ctx, userID)
 }
 
 // Ping mocks base method.
@@ -122,15 +122,15 @@ func (mr *MockRepositoryMockRecorder) Ping(ctx interface{}) *gomock.Call {
 }
 
 // SetShortURL mocks base method.
-func (m *MockRepository) SetShortURL(shortys *model.Shorty) error {
+func (m *MockRepository) SetShortURL(ctx context.Context, shortys *model.Shorty) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetShortURL", shortys)
+	ret := m.ctrl.Call(m, "SetShortURL", ctx, shortys)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetShortURL indicates an expected call of SetShortURL.
-func (mr *MockRepositoryMockRecorder) SetShortURL(shortys interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) SetShortURL(ctx, shortys interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetShortURL", reflect.TypeOf((*MockRepository)(nil).SetShortURL), shortys)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetShortURL", reflect.TypeOf((*MockRepository)(nil).SetShortURL), ctx, shortys)
 }

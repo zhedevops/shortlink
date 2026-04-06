@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
@@ -18,6 +20,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/middleware"
@@ -35,7 +38,9 @@ func TestCreateShortLinkHandler(t *testing.T) {
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.GzipHandle)
 	r.With(middleware.RequireContentType("text/plain")).HandleFunc("/", h.CreateShortLinkHandler)
@@ -149,19 +154,24 @@ func TestCreateShortLinkHandler(t *testing.T) {
 }
 
 func TestGetLinkByIDHandler(t *testing.T) {
+	cnf := config.GetConfig()
 	fileName := "../../data/files/defaultpath/test.json"
 	defer func() {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
-	h := &Handler{service: srv}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	shortID := "ZMFazWTA"
 	originalURL := "https://ria.ru/"
-	var shortys = &model.Shorty{
+	shortys := &model.Shorty{
 		OriginalURL: "https://ria.ru/",
 	}
-	_, err := srv.CreateShortLink(shortys)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := srv.CreateShortLink(ctx, shortys)
 	assert.Nil(t, err)
 
 	r := chi.NewRouter()
@@ -245,9 +255,9 @@ func TestGetLinkByIDHandler(t *testing.T) {
 
 func TestCreateShortLinkEncHandler(t *testing.T) {
 	cnf := config.GetConfig()
-	var target = "/api/shorten"
+	target := "/api/shorten"
 	respLink := cnf.ResponseAddr.ServerAddress + "/CSaEMooR"
-	var resp = model.Response{
+	resp := model.Response{
 		Result: respLink,
 	}
 	var buf bytes.Buffer
@@ -260,7 +270,9 @@ func TestCreateShortLinkEncHandler(t *testing.T) {
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.With(middleware.RequireContentType("application/json")).HandleFunc(target, h.CreateShortLinkEncHandler)
@@ -399,7 +411,9 @@ func TestHandler_PingHandler(t *testing.T) {
 	a.IsType(&pgxpool.Pool{}, pool)
 	st := storage.NewDBStorage(pool)
 	srv := service.NewService(st)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	r := chi.NewRouter()
 	r.HandleFunc("/ping", h.PingHandler)
 	t.Run("Pool opened. Ping ok", func(t *testing.T) {
@@ -451,22 +465,24 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	m.EXPECT().CheckIDByURL("http://zgvx7h.ru").Return(value).Times(1)
 	m.EXPECT().CheckIDByURL("http://zgvx7h.ru").Return(value2).Times(1)
 	m.EXPECT().CheckIDByURL("http://qpsh6hy.biz").Return(value).Times(1)
-	m.EXPECT().GetOriginalURL("qknZDqRy").Return(value)
-	m.EXPECT().GetOriginalURL("HLYMhqfn").Return(value)
-	m.EXPECT().GetOriginalURL("BGTHakFB").Return(value)
-	m.EXPECT().GetOriginalURL("npDieteQ").Return(value)
-	var shortys = model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
-	var shortys2 = model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
-	var shortys3 = model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
-	var shortys4 = model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
-	m.EXPECT().SetShortURL(shortys).Return(nil)
-	m.EXPECT().SetShortURL(shortys2).Return(nil)
-	m.EXPECT().SetShortURL(shortys3).Return(nil).Times(1)
-	m.EXPECT().SetShortURL(shortys4).Return(errors.New("db error")).Times(1)
-	var target = "/api/shorten/batch"
+	m.EXPECT().GetOriginalURL(gomock.Any(), "qknZDqRy").Return(value)
+	m.EXPECT().GetOriginalURL(gomock.Any(), "HLYMhqfn").Return(value)
+	m.EXPECT().GetOriginalURL(gomock.Any(), "BGTHakFB").Return(value)
+	m.EXPECT().GetOriginalURL(gomock.Any(), "npDieteQ").Return(value)
+	shortys := model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
+	shortys2 := model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
+	shortys3 := model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
+	shortys4 := model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys).Return(nil)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys2).Return(nil)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys3).Return(nil).Times(1)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys4).Return(errors.New("db error")).Times(1)
+	target := "/api/shorten/batch"
 	cnf := config.GetConfig()
 	srv := service.NewService(m)
-	h := &Handler{service: srv, Cfg: cnf}
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
 	ac := h.service.GetAuthCookie(user)
 	cookie := &http.Cookie{
 		Name:     "Authorization",
@@ -625,4 +641,95 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeRepo struct{}
+
+func (f *fakeRepo) GetOriginalURL(ctx context.Context, id string) model.Shorty {
+	_ = ctx
+	_ = id
+	return model.Shorty{}
+}
+
+func (f *fakeRepo) CheckIDByURL(url string) model.Shorty {
+	_ = url
+	shortys := model.Shorty{
+		UUID:        "d51eae65-0408-4d2d-997d-989f77f26e71",
+		OriginalURL: "http://dlf82a5xunr.net/vmzsxxp",
+		ShortURL:    "qknZDqRy",
+		UserID:      2,
+	}
+	return shortys
+}
+
+func (f *fakeRepo) SetShortURL(ctx context.Context, shortys *model.Shorty) error {
+	_ = ctx
+	_ = shortys
+	return nil
+}
+
+func (f *fakeRepo) Ping(ctx context.Context) error {
+	_ = ctx
+	return nil
+}
+
+func (f *fakeRepo) CreateUser(ctx context.Context) (model.User, error) {
+	_ = ctx
+	return model.User{}, nil
+}
+
+func (f *fakeRepo) GetShortysByUser(ctx context.Context, userID uint32) ([]*model.Shorty, error) {
+	_ = ctx
+	_ = userID
+	return []*model.Shorty{}, nil
+}
+
+func (f *fakeRepo) DeleteLinks(ctx context.Context, ids []string, userID uint32) error {
+	_ = ctx
+	_ = ids
+	_ = userID
+	return nil
+}
+
+// Пример создания короткой ссылки.
+func ExampleHandler_CreateShortLinkHandler() {
+	// Создаём пользователя
+	user := model.User{ID: 2}
+	// Создаём обработчик с зависимостями
+	cnf := config.GetConfig()
+	// Для примера используем фейковый репозиторий, метод которого CheckIDByURL будет возвращать такой ответ:
+	//  model.Shorty{
+	//		UUID:        "d51eae65-0408-4d2d-997d-989f77f26e71",
+	//		OriginalURL: "http://dlf82a5xunr.net/vmzsxxp",
+	//		ShortURL:    "qknZDqRy",
+	//		UserID:      2,
+	//	}
+	srv := service.NewService(&fakeRepo{})
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
+	// Создаём cookie для пользователя
+	ac := h.service.GetAuthCookie(user)
+	cookie := &http.Cookie{
+		Name:     "Authorization",
+		Value:    ac,
+		Path:     "/",
+		HttpOnly: true,
+	}
+
+	// Создаём запрос
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString("http://dlf82a5xunr.net/vmzsxxp"))
+	// Добавляем в запрос cookie
+	req.AddCookie(cookie)
+	w := httptest.NewRecorder()
+
+	// Вызываем метод обработчика
+	h.CreateShortLinkHandler(w, req)
+
+	resp := w.Result()
+
+	fmt.Println(resp.StatusCode)
+
+	// Output:
+	// 201
 }

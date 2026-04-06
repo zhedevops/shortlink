@@ -1,3 +1,4 @@
+// Package router Маршрутизатор
 package router
 
 import (
@@ -15,6 +16,7 @@ import (
 	"github.com/zhedevops/shortlink/internal/middleware"
 )
 
+// NewRouter Создаёт новый маршрутизатор
 func NewRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.GzipHandle)
@@ -28,11 +30,16 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 	return r
 }
 
+// Serve Запускает сервис и осуществляет его корректную остановку
 func Serve(h *handler.Handler) error {
 	router := NewRouter(h)
 	server := &http.Server{
-		Addr:    h.Cfg.ServerAddr.ServerAddress,
-		Handler: router,
+		Addr:              h.Cfg.ServerAddr.ServerAddress,
+		Handler:           router,
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	// Канал для получения сигналов прерывания
 	signalChan := make(chan os.Signal, 1)

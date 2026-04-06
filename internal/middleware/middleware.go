@@ -1,3 +1,4 @@
+// Package middleware Промежуточные обработчики запросов.
 package middleware
 
 import (
@@ -11,6 +12,7 @@ import (
 	"time"
 )
 
+// RequireContentType Проверяет допустимый тип запроса.
 func RequireContentType(rct string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -24,6 +26,7 @@ func RequireContentType(rct string) func(http.Handler) http.Handler {
 	}
 }
 
+// Logger Сохраняет информацию о выполнении запроса.
 func Logger(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := logger.ResponseData{
@@ -45,7 +48,7 @@ func Logger(h http.Handler) http.Handler {
 			Timestamp().
 			Str("uri", uri).
 			Str("method", method).
-			Str("duration", fmt.Sprint(duration)).
+			Str("duration", duration.String()).
 			Int("status", status).
 			Int("size", size).
 			Send()

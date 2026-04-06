@@ -1,9 +1,11 @@
+// Сервис сокращения URL
 package main
 
 import (
 	"log"
 	"strings"
 
+	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/handler"
@@ -15,9 +17,22 @@ import (
 )
 
 func main() {
+	// Для профилирования CPU используем этот код
+	//f, err := os.Create("result.pprof")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//_ = pprof.StartCPUProfile(f)
+	//defer pprof.StopCPUProfile()
+
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
+	// Для профилирования потребления памяти используем этот код
+	//ff, _ := os.Create("heap.pprof")
+	//_ = pprof.WriteHeapProfile(ff)
+	//_ = ff.Close()
 }
 
 func run() error {
@@ -52,7 +67,21 @@ func run() error {
 	}
 
 	srv := service.NewService(st)
-	h := handler.NewHandler(srv, cnf)
+
+	var sinks []audit.AuditSink
+	af := strings.TrimSpace(cnf.AuditFile)
+	au := strings.TrimSpace(cnf.AuditURL)
+	if af != "" {
+		fs := audit.NewFileSink(af)
+		sinks = append(sinks, fs)
+	}
+	if au != "" {
+		rs := audit.NewRemoteSink(au)
+		sinks = append(sinks, rs)
+	}
+	auditSrv := audit.NewAuditService(sinks)
+
+	h := handler.NewHandler(auditSrv, srv, cnf)
 
 	if err := router.Serve(h); err != nil {
 		return err

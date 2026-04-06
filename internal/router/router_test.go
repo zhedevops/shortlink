@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/service"
@@ -21,7 +22,9 @@ func TestNewRouter(t *testing.T) {
 	}()
 	fs := storage.NewFileStorage(fileName)
 	srv := service.NewService(fs)
-	h := handler.NewHandler(srv, cnf)
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := handler.NewHandler(auditSrv, srv, cnf)
 	r := NewRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ria.ru/"))

@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -44,4 +46,25 @@ func TestLogger(t *testing.T) {
 	assert.Equal(t, float64(4), logEntry["size"])
 	assert.Equal(t, http.MethodGet, logEntry["method"])
 	assert.Equal(t, float64(http.StatusOK), logEntry["status"])
+}
+
+func BenchmarkService(b *testing.B) {
+	start := time.Now()
+	duration := time.Since(start)
+	b.ResetTimer()
+	b.Run("fmt", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = fmt.Sprint(duration)
+		}
+	})
+	b.Run("string", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = duration.String()
+		}
+	})
+	b.Run("strconv", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = strconv.FormatInt(int64(duration), 10)
+		}
+	})
 }

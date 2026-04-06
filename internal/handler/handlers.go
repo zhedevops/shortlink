@@ -1,30 +1,43 @@
+// Package handler Обработчик API запросов
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
+	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/service"
 )
 
+// Handler Тип обработчика
 type Handler struct {
+	// audit Сервис аудита.
+	audit *audit.AuditService
+	// service Сервис, отвечающий за обработку запросов обработчика.
 	service *service.Service
-	Cfg     *config.Config
+	// Cfg Конфигурация.
+	Cfg *config.Config
 }
 
-func NewHandler(s *service.Service, cnf *config.Config) *Handler {
+// NewHandler Создаёт новый обработчик
+func NewHandler(audit *audit.AuditService, srv *service.Service, cnf *config.Config) *Handler {
 	return &Handler{
-		service: s,
+		audit:   audit,
+		service: srv,
 		Cfg:     cnf,
 	}
 }
 
+// CreateShortLinkHandler Создаёт короткую ссылку для адреса
 func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -37,8 +50,10 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer r.Body.Close()
-	var shortys = model.NewShortys("", string(body), "", user.ID)
-	link, err := h.service.CreateShortLink(shortys)
+	shortys := model.NewShortys("", string(body), "", user.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	link, err := h.service.CreateShortLink(ctx, shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
 			h.setErrorResponseOnConflict(w, link)
@@ -50,12 +65,18 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(resp))
-	if err != nil {
+	if _, err = w.Write([]byte(resp)); err != nil {
 		log.Error().Err(err).Msg("failed to write response")
 	}
+	h.audit.Send(audit.AuditEvent{
+		UserID:    strconv.Itoa(int(user.ID)),
+		Action:    audit.ActionShorten,
+		URL:       link.OriginalURL,
+		Timestamp: time.Now(),
+	})
 }
 
+// CreateShortLinkEncHandler Создаёт короткую ссылку из запроса с json-телом
 func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -69,8 +90,10 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	defer r.Body.Close()
-	var shortys = model.NewShortys("", req.URL, "", user.ID)
-	link, err := h.service.CreateShortLink(shortys)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	shortys := model.NewShortys("", req.URL, "", user.ID)
+	link, err := h.service.CreateShortLink(ctx, shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
 			h.setShortenErrorResponseOnConflict(w, link)
@@ -80,7 +103,7 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	respLink := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
-	var resp = model.Response{
+	resp := model.Response{
 		Result: respLink,
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -89,8 +112,15 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	if err = encoder.Encode(resp); err != nil {
 		log.Error().Err(err).Msg("error encoding response")
 	}
+	h.audit.Send(audit.AuditEvent{
+		UserID:    strconv.Itoa(int(user.ID)),
+		Action:    audit.ActionShorten,
+		URL:       link.OriginalURL,
+		Timestamp: time.Now(),
+	})
 }
 
+// CreateShortLinkBatchHandler Осущестляет пакетную обработку запроса, принимая в теле запроса множество ссылок
 func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -104,10 +134,12 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	defer r.Body.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	resp := []model.ResponseBatch{}
 	for _, rb := range req {
-		var shortys = model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
-		link, err := h.service.CreateShortLink(shortys)
+		shortys := model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
+		link, err := h.service.CreateShortLink(ctx, shortys)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -126,9 +158,12 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// GetLinkByIDHandler Получает оригинальную ссылку по короткой
 func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	id := chi.URLParam(r, "id")
-	urlStr, err := h.service.GetOriginalURL(id)
+	urlStr, err := h.service.GetOriginalURL(ctx, id)
 	if err != nil {
 		if errors.Is(err, model.ErrURLDeleted) {
 			writeJSONError(w, http.StatusGone, "url_is_deleted", err.Error())
@@ -139,48 +174,34 @@ func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", urlStr)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+	h.audit.Send(audit.AuditEvent{
+		UserID:    "",
+		Action:    audit.ActionFollow,
+		URL:       urlStr,
+		Timestamp: time.Now(),
+	})
 }
 
+// PingHandler Осуществляет пинг сервера
 func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := h.service.Ping(ctx)
-	if err != nil {
+	if err := h.service.Ping(ctx); err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "service_Ping_failure", err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusConflict)
-
-	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
-	_, err := w.Write([]byte(resp))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to write response")
-	}
-}
-
-func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusConflict)
-	var resp = model.Response{
-		Result: h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
-	}
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(resp); err != nil {
-		log.Error().Err(err).Msg("error encoding response")
-	}
-}
-
+// UserLinksHandler Получает все ссылки, сгенерированные пользователем
 func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "handleCookie_failure", err.Error())
 		return
 	}
-	links, err := h.service.GetUserLinks(user.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	links, err := h.service.GetUserLinks(ctx, user.ID)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "service_GetUserLinks_failure", err.Error())
 	}
@@ -203,6 +224,7 @@ func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteLinkBatchHandler Осуществляет пакетное удаление оригинальных ссылок по полученным коротким ссылкам
 func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := h.handleCookie(w, r)
 	if err != nil {
@@ -217,14 +239,16 @@ func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request)
 	}
 	defer r.Body.Close()
 	go func() {
-		_ = h.service.DeleteLinks(shortURLs, user.ID)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = h.service.DeleteLinks(ctx, shortURLs, user.ID)
 	}()
 	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.User, error) {
 	cookieAuth, err := r.Cookie("Authorization")
-	var user = model.User{}
+	user := model.User{}
 	needCreate := err != nil
 
 	if !needCreate {
@@ -234,7 +258,9 @@ func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.Us
 		}
 	}
 	if needCreate {
-		user, err = h.service.GetNewUser()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		user, err = h.service.GetNewUser(ctx)
 		if err != nil {
 			return user, err
 		}
@@ -247,6 +273,28 @@ func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.Us
 		})
 	}
 	return user, nil
+}
+
+func (h *Handler) setErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusConflict)
+
+	resp := h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL
+	if _, err := w.Write([]byte(resp)); err != nil {
+		log.Error().Err(err).Msg("failed to write response")
+	}
+}
+
+func (h *Handler) setShortenErrorResponseOnConflict(w http.ResponseWriter, link *model.Shorty) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusConflict)
+	resp := model.Response{
+		Result: h.Cfg.ResponseAddr.ServerAddress + "/" + link.ShortURL,
+	}
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		log.Error().Err(err).Msg("error encoding response")
+	}
 }
 
 func writeJSONError(w http.ResponseWriter, status int, errCode, msg string) {

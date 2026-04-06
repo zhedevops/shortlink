@@ -1,7 +1,7 @@
+// Package config Конфигурация сервиса.
 package config
 
 import (
-	"errors"
 	"flag"
 	"log"
 	"net/url"
@@ -11,10 +11,13 @@ import (
 
 	"github.com/caarlos0/env/v6"
 	"github.com/joho/godotenv"
+	"github.com/zhedevops/shortlink/internal/model"
 )
 
-var scheme = "http://"
-var defaultAddress = "localhost:8080"
+var (
+	scheme         = "http://"
+	defaultAddress = "localhost:8080"
+)
 
 type netAddress struct {
 	ServerAddress string
@@ -27,14 +30,19 @@ type EnvParams struct {
 	LogLevel        *string `env:"LOG_LEVEL"`
 	FileStoragePath *string `env:"FILE_STORAGE_PATH"`
 	DatabaseDsn     *string `env:"DATABASE_DSN"`
+	AuditFile       *string `env:"AUDIT_FILE"`
+	AuditURL        *string `env:"AUDIT_URL"`
 }
 
+// Config Тип конфигурации, содержащий всё необходимую информацю для работы сервиса.
 type Config struct {
 	ServerAddr      *netAddress
 	ResponseAddr    *netAddress
 	LogLevel        string
 	FileStoragePath string
 	DatabaseDsn     string
+	AuditFile       string
+	AuditURL        string
 }
 
 var cfg = &Config{
@@ -52,14 +60,14 @@ func (addr *netAddress) Set(flagVal string) error {
 	}
 	u, err := url.Parse(flagVal)
 	if err != nil {
-		return errors.New("need url in a form protocol:host:port")
+		return model.ErrServerAddressFlagValue
 	}
 	protocol := u.Scheme
 	host := u.Hostname()
 	port := u.Port()
 
 	if host == "" || port == "" {
-		return errors.New("host or port is empty")
+		return model.ErrHostPort
 	}
 
 	addr.ServerAddress = host + ":" + port
@@ -69,11 +77,13 @@ func (addr *netAddress) Set(flagVal string) error {
 	return nil
 }
 
+// SetConfig Устанавливает конфигурацию.
 func SetConfig() {
 	SetConfigByFlag()
 	parseEnvParams()
 }
 
+// GetConfig Возвращает конфигурацию.
 func GetConfig() *Config {
 	return cfg
 }
@@ -81,8 +91,7 @@ func GetConfig() *Config {
 func parseEnvParams() {
 	_ = godotenv.Load(".env")
 	var params EnvParams
-	err := env.Parse(&params)
-	if err != nil {
+	if err := env.Parse(&params); err != nil {
 		log.Fatal(err)
 	}
 
@@ -112,13 +121,24 @@ func parseEnvParams() {
 	if params.DatabaseDsn != nil {
 		cfg.DatabaseDsn = *params.DatabaseDsn
 	}
+
+	if params.AuditFile != nil {
+		cfg.AuditFile = *params.AuditFile
+	}
+
+	if params.AuditURL != nil {
+		cfg.AuditURL = *params.AuditURL
+	}
 }
 
+// SetConfigByFlag Осуществляет установку значений конфигурации из переданных флагов.
 func SetConfigByFlag() {
 	flag.Var(cfg.ServerAddr, "a", "server address host:port")
 	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
 	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
 	flag.StringVar(&cfg.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "db dsn")
+	flag.StringVar(&cfg.AuditFile, "audit-file", "", "audit-file")
+	flag.StringVar(&cfg.AuditURL, "audit-url", "", "audit-url")
 	flag.Parse()
 }

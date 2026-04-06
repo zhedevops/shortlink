@@ -21,8 +21,7 @@ func TestGzipHandle(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write(body)
-		if err != nil {
+		if _, err = w.Write(body); err != nil {
 			http.Error(w, "cannot write response", http.StatusInternalServerError)
 			return
 		}
