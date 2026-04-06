@@ -20,11 +20,13 @@ func (fs *FileStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (fs *FileStorage) CreateUser() (model.User, error) {
+func (fs *FileStorage) CreateUser(ctx context.Context) (model.User, error) {
+	_ = ctx
 	return model.User{}, nil
 }
 
-func (fs *FileStorage) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
+func (fs *FileStorage) GetShortysByUser(ctx context.Context, userID uint32) ([]*model.Shorty, error) {
+	_ = ctx
 	_ = userID
 	return nil, nil
 }
@@ -35,13 +37,15 @@ func NewFileStorage(filepath string) *FileStorage {
 	}
 }
 
-func (fs *FileStorage) DeleteLinks(ids []string, userID uint32) error {
+func (fs *FileStorage) DeleteLinks(ctx context.Context, ids []string, userID uint32) error {
+	_ = ctx
 	_ = ids
 	_ = userID
 	return nil
 }
 
-func (fs *FileStorage) SetShortURL(shortys *model.Shorty) error {
+func (fs *FileStorage) SetShortURL(ctx context.Context, shortys *model.Shorty) error {
+	_ = ctx
 	file, err := os.OpenFile(fs.filepath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
@@ -99,7 +103,8 @@ func (fs *FileStorage) SetShortURL(shortys *model.Shorty) error {
 	return nil
 }
 
-func (fs *FileStorage) GetOriginalURL(id string) model.Shorty {
+func (fs *FileStorage) GetOriginalURL(ctx context.Context, id string) model.Shorty {
+	_ = ctx
 	return findMatchingElement(fs.filepath, true, id)
 }
 

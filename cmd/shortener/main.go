@@ -3,14 +3,10 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
-	"github.com/zhedevops/shortlink/internal/container"
 	"github.com/zhedevops/shortlink/internal/database"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/logger"
@@ -76,22 +72,16 @@ func run() error {
 	af := strings.TrimSpace(cnf.AuditFile)
 	au := strings.TrimSpace(cnf.AuditURL)
 	if af != "" {
-		sinks = append(sinks, &audit.FileSink{Path: af, Mu: sync.Mutex{}})
+		fs := audit.NewFileSink(af)
+		sinks = append(sinks, fs)
 	}
 	if au != "" {
-		client := &http.Client{
-			Timeout: 10 * time.Second,
-		}
-		sinks = append(sinks, &audit.RemoteSink{URL: au, Client: client})
+		rs := audit.NewRemoteSink(au)
+		sinks = append(sinks, rs)
 	}
 	auditSrv := audit.NewAuditService(sinks)
 
-	app := &container.App{
-		Audit:   auditSrv,
-		Service: srv,
-		Config:  cnf,
-	}
-	h := handler.NewHandler(app)
+	h := handler.NewHandler(auditSrv, srv, cnf)
 
 	if err := router.Serve(h); err != nil {
 		return err

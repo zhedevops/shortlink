@@ -15,16 +15,19 @@ func (ms *MemoryStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (ms *MemoryStorage) CreateUser() (model.User, error) {
+func (ms *MemoryStorage) CreateUser(ctx context.Context) (model.User, error) {
+	_ = ctx
 	return model.User{}, nil
 }
 
-func (ms *MemoryStorage) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
+func (ms *MemoryStorage) GetShortysByUser(ctx context.Context, userID uint32) ([]*model.Shorty, error) {
+	_ = ctx
 	_ = userID
 	return nil, nil
 }
 
-func (ms *MemoryStorage) DeleteLinks(ids []string, userID uint32) error {
+func (ms *MemoryStorage) DeleteLinks(ctx context.Context, ids []string, userID uint32) error {
+	_ = ctx
 	_ = ids
 	_ = userID
 	return nil
@@ -36,12 +39,14 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (ms *MemoryStorage) SetShortURL(shortys *model.Shorty) error {
+func (ms *MemoryStorage) SetShortURL(ctx context.Context, shortys *model.Shorty) error {
+	_ = ctx
 	ms.Store[shortys.ShortURL] = shortys.OriginalURL
 	return nil
 }
 
-func (ms *MemoryStorage) GetOriginalURL(id string) model.Shorty {
+func (ms *MemoryStorage) GetOriginalURL(ctx context.Context, id string) model.Shorty {
+	_ = ctx
 	return model.Shorty{
 		OriginalURL: ms.Store[id],
 	}

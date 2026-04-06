@@ -34,8 +34,12 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 func Serve(h *handler.Handler) error {
 	router := NewRouter(h)
 	server := &http.Server{
-		Addr:    h.Cfg.ServerAddr.ServerAddress,
-		Handler: router,
+		Addr:              h.Cfg.ServerAddr.ServerAddress,
+		Handler:           router,
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	// Канал для получения сигналов прерывания
 	signalChan := make(chan os.Signal, 1)

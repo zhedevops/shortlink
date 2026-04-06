@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
@@ -168,7 +169,9 @@ func TestGetLinkByIDHandler(t *testing.T) {
 	shortys := &model.Shorty{
 		OriginalURL: "https://ria.ru/",
 	}
-	_, err := srv.CreateShortLink(shortys)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := srv.CreateShortLink(ctx, shortys)
 	assert.Nil(t, err)
 
 	r := chi.NewRouter()
@@ -462,18 +465,18 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	m.EXPECT().CheckIDByURL("http://zgvx7h.ru").Return(value).Times(1)
 	m.EXPECT().CheckIDByURL("http://zgvx7h.ru").Return(value2).Times(1)
 	m.EXPECT().CheckIDByURL("http://qpsh6hy.biz").Return(value).Times(1)
-	m.EXPECT().GetOriginalURL("qknZDqRy").Return(value)
-	m.EXPECT().GetOriginalURL("HLYMhqfn").Return(value)
-	m.EXPECT().GetOriginalURL("BGTHakFB").Return(value)
-	m.EXPECT().GetOriginalURL("npDieteQ").Return(value)
+	m.EXPECT().GetOriginalURL(gomock.Any(), "qknZDqRy").Return(value)
+	m.EXPECT().GetOriginalURL(gomock.Any(), "HLYMhqfn").Return(value)
+	m.EXPECT().GetOriginalURL(gomock.Any(), "BGTHakFB").Return(value)
+	m.EXPECT().GetOriginalURL(gomock.Any(), "npDieteQ").Return(value)
 	shortys := model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
 	shortys2 := model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
 	shortys3 := model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
 	shortys4 := model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
-	m.EXPECT().SetShortURL(shortys).Return(nil)
-	m.EXPECT().SetShortURL(shortys2).Return(nil)
-	m.EXPECT().SetShortURL(shortys3).Return(nil).Times(1)
-	m.EXPECT().SetShortURL(shortys4).Return(errors.New("db error")).Times(1)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys).Return(nil)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys2).Return(nil)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys3).Return(nil).Times(1)
+	m.EXPECT().SetShortURL(gomock.Any(), shortys4).Return(errors.New("db error")).Times(1)
 	target := "/api/shorten/batch"
 	cnf := config.GetConfig()
 	srv := service.NewService(m)
@@ -642,11 +645,14 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 
 type fakeRepo struct{}
 
-func (f *fakeRepo) GetOriginalURL(id string) model.Shorty {
+func (f *fakeRepo) GetOriginalURL(ctx context.Context, id string) model.Shorty {
+	_ = ctx
+	_ = id
 	return model.Shorty{}
 }
 
 func (f *fakeRepo) CheckIDByURL(url string) model.Shorty {
+	_ = url
 	shortys := model.Shorty{
 		UUID:        "d51eae65-0408-4d2d-997d-989f77f26e71",
 		OriginalURL: "http://dlf82a5xunr.net/vmzsxxp",
@@ -656,23 +662,32 @@ func (f *fakeRepo) CheckIDByURL(url string) model.Shorty {
 	return shortys
 }
 
-func (f *fakeRepo) SetShortURL(shortys *model.Shorty) error {
+func (f *fakeRepo) SetShortURL(ctx context.Context, shortys *model.Shorty) error {
+	_ = ctx
+	_ = shortys
 	return nil
 }
 
 func (f *fakeRepo) Ping(ctx context.Context) error {
+	_ = ctx
 	return nil
 }
 
-func (f *fakeRepo) CreateUser() (model.User, error) {
+func (f *fakeRepo) CreateUser(ctx context.Context) (model.User, error) {
+	_ = ctx
 	return model.User{}, nil
 }
 
-func (f *fakeRepo) GetShortysByUser(userID uint32) ([]*model.Shorty, error) {
+func (f *fakeRepo) GetShortysByUser(ctx context.Context, userID uint32) ([]*model.Shorty, error) {
+	_ = ctx
+	_ = userID
 	return []*model.Shorty{}, nil
 }
 
-func (f *fakeRepo) DeleteLinks(ids []string, userID uint32) error {
+func (f *fakeRepo) DeleteLinks(ctx context.Context, ids []string, userID uint32) error {
+	_ = ctx
+	_ = ids
+	_ = userID
 	return nil
 }
 

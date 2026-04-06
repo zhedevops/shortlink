@@ -2,7 +2,6 @@
 package config
 
 import (
-	"errors"
 	"flag"
 	"log"
 	"net/url"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/caarlos0/env/v6"
 	"github.com/joho/godotenv"
+	"github.com/zhedevops/shortlink/internal/model"
 )
 
 var (
@@ -60,14 +60,14 @@ func (addr *netAddress) Set(flagVal string) error {
 	}
 	u, err := url.Parse(flagVal)
 	if err != nil {
-		return errors.New("need url in a form protocol:host:port")
+		return model.ErrServerAddressFlagValue
 	}
 	protocol := u.Scheme
 	host := u.Hostname()
 	port := u.Port()
 
 	if host == "" || port == "" {
-		return errors.New("host or port is empty")
+		return model.ErrHostPort
 	}
 
 	addr.ServerAddress = host + ":" + port

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/zhedevops/shortlink/internal/model"
@@ -31,9 +33,11 @@ func TestServiceFuncs(t *testing.T) {
 	}
 	shortys := model.NewShortys("", url, "", user.ID)
 	var value string
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	t.Run("test CreateShortLink from url", func(t *testing.T) {
-		link, err := srv.CreateShortLink(shortys)
+		link, err := srv.CreateShortLink(ctx, shortys)
 		assert.Nil(t, err)
 		assert.NotNil(t, link)
 		assert.Equal(t, url, link.OriginalURL)
@@ -41,28 +45,28 @@ func TestServiceFuncs(t *testing.T) {
 	})
 
 	t.Run("success test GetOriginalURL", func(t *testing.T) {
-		link, err := srv.CreateShortLink(shortys)
+		link, err := srv.CreateShortLink(ctx, shortys)
 		assert.Nil(t, err)
-		gotURL, err := srv.GetOriginalURL(link.ShortURL)
+		gotURL, err := srv.GetOriginalURL(ctx, link.ShortURL)
 		assert.Nil(t, err)
 		assert.Equal(t, url, gotURL)
 	})
 
 	t.Run("success test getShort", func(t *testing.T) {
-		id, err := srv.getShort("http://test.com", 0)
+		id, err := srv.getShort(ctx, "http://test.com", 0)
 		assert.Nil(t, err)
 		assert.Equal(t, "CZAqzwap", id)
 	})
 
 	t.Run("failure length test GetOriginalURL", func(t *testing.T) {
-		gotURL, err := srv.GetOriginalURL("ZZZZ")
+		gotURL, err := srv.GetOriginalURL(ctx, "ZZZZ")
 		assert.NotNil(t, err)
 		assert.Equal(t, "unexpected length id", err.Error())
 		assert.Empty(t, gotURL)
 	})
 
 	t.Run("failure test GetOriginalURL", func(t *testing.T) {
-		gotURL, err := srv.GetOriginalURL("ZZZZZZZZ")
+		gotURL, err := srv.GetOriginalURL(ctx, "ZZZZZZZZ")
 		assert.NotNil(t, err)
 		assert.Equal(t, "url not found", err.Error())
 		assert.Empty(t, gotURL)
@@ -201,20 +205,22 @@ func BenchmarkService(b *testing.B) {
 	shortys := &model.Shorty{
 		OriginalURL: "https://ria.ru/",
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	b.ResetTimer()
 	b.Run("CreateShortLink", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = srv.CreateShortLink(shortys)
+			_, _ = srv.CreateShortLink(ctx, shortys)
 		}
 	})
 	b.Run("getShort", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = srv.getShort("http://test.com", 100)
+			_, _ = srv.getShort(ctx, "http://test.com", 100)
 		}
 	})
 	b.Run("GetOriginalURL", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = srv.GetOriginalURL("CZAqzwap")
+			_, _ = srv.GetOriginalURL(ctx, "CZAqzwap")
 		}
 	})
 	b.Run("GetAuthCookie", func(b *testing.B) {

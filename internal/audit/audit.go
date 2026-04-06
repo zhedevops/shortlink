@@ -1,13 +1,12 @@
 package audit
 
 import (
-	"bytes"
 	"encoding/json"
-	"net/http"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
 )
 
@@ -33,15 +32,23 @@ type AuditSink interface {
 }
 
 type FileSink struct {
-	Mu sync.Mutex // для безопасной записи из нескольких горутин
+	mu sync.Mutex // для безопасной записи из нескольких горутин
 
 	Path string
 }
 
+func NewFileSink(path string) *FileSink {
+	return &FileSink{mu: sync.Mutex{}, Path: path}
+}
+
 type RemoteSink struct {
-	Client *http.Client
+	client *resty.Client
 
 	URL string
+}
+
+func NewRemoteSink(url string) *RemoteSink {
+	return &RemoteSink{client: resty.New(), URL: url}
 }
 
 func NewAuditService(sinks []AuditSink) *AuditService {
@@ -70,8 +77,8 @@ func (a *AuditService) Send(e AuditEvent) {
 }
 
 func (fs *FileSink) Consume(e AuditEvent) {
-	fs.Mu.Lock()
-	defer fs.Mu.Unlock()
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 
 	file, err := os.OpenFile(fs.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
@@ -95,25 +102,18 @@ func (fs *FileSink) Consume(e AuditEvent) {
 }
 
 func (rs *RemoteSink) Consume(e AuditEvent) {
-	data, err := json.Marshal(e)
-	if err != nil {
-		log.Error().Err(err).Msg("audit: marshal failed")
-		return
-	}
-	req, err := http.NewRequest(http.MethodPost, rs.URL, bytes.NewBuffer(data))
-	if err != nil {
-		log.Error().Err(err).Msg("audit: request create failed")
-		return
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := rs.Client.Do(req)
+	resp, err := rs.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(e).
+		Post(rs.URL)
 	if err != nil {
 		log.Error().Err(err).Msg("audit: request failed")
 		return
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	if resp.IsError() {
+		log.Error().
+			Int("status", resp.StatusCode()).
+			Str("body", resp.String()).
+			Msg("audit: server returned error")
+	}
 }

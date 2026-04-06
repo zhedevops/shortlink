@@ -36,10 +36,10 @@ func NewService(r repository.Repository) *Service {
 }
 
 // CreateShortLink Создаёт короткую ссылку.
-func (srv *Service) CreateShortLink(shortys *model.Shorty) (*model.Shorty, error) {
+func (srv *Service) CreateShortLink(ctx context.Context, shortys *model.Shorty) (*model.Shorty, error) {
 	urlStr := strings.TrimSpace(shortys.OriginalURL)
 	if len(urlStr) == 0 {
-		return nil, errors.New("empty url")
+		return nil, model.ErrEmptyURL
 	}
 	u, err := url.ParseRequestURI(urlStr)
 	if err != nil {
@@ -52,12 +52,12 @@ func (srv *Service) CreateShortLink(shortys *model.Shorty) (*model.Shorty, error
 	if existingShortys.ShortURL != "" {
 		return &existingShortys, nil
 	}
-	id, err := srv.getShort(urlStr, 0)
+	id, err := srv.getShort(ctx, urlStr, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed create short link: %w", err)
 	}
 	shortys.ShortURL = id
-	if err = srv.repo.SetShortURL(shortys); err != nil {
+	if err = srv.repo.SetShortURL(ctx, shortys); err != nil {
 		if errors.Is(err, model.ErrConflict) {
 			return shortys, err
 		}
@@ -67,13 +67,13 @@ func (srv *Service) CreateShortLink(shortys *model.Shorty) (*model.Shorty, error
 }
 
 // GetOriginalURL Получает оригинальную ссылку.
-func (srv *Service) GetOriginalURL(id string) (string, error) {
+func (srv *Service) GetOriginalURL(ctx context.Context, id string) (string, error) {
 	if len(id) != 8 {
-		return "", errors.New("unexpected length id")
+		return "", model.ErrWrongID
 	}
-	existingShortys := srv.repo.GetOriginalURL(id)
+	existingShortys := srv.repo.GetOriginalURL(ctx, id)
 	if existingShortys.OriginalURL == "" {
-		return "", errors.New("url not found")
+		return "", model.ErrURLNotFound
 	}
 	if existingShortys.DeletedFlag {
 		return "", model.ErrURLDeleted
@@ -86,8 +86,8 @@ func (srv *Service) Ping(ctx context.Context) error {
 }
 
 // GetNewUser Создаёт нового пользователя.
-func (srv *Service) GetNewUser() (model.User, error) {
-	return srv.repo.CreateUser()
+func (srv *Service) GetNewUser(ctx context.Context) (model.User, error) {
+	return srv.repo.CreateUser(ctx)
 }
 
 // CheckAuthCookie Проверяет авторизационную cookie.
@@ -96,27 +96,27 @@ func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error)
 	ujwt := model.UserJWT{}
 	values := strings.Split(cookieAuth.Value, ".")
 	if len(values) != 2 {
-		return user, errors.New("bad cookie value")
+		return user, model.ErrBadCookie
 	}
 	jwtData, err := base64.StdEncoding.DecodeString(values[0])
 	if err != nil {
-		return user, errors.New("decode cookie value failed")
+		return user, model.ErrDecodeCookie
 	}
 	signature, err := base64.StdEncoding.DecodeString(values[1])
 	if err != nil {
-		return user, errors.New("decode cookie value signature failed")
+		return user, model.ErrDecodeCookieSignature
 	}
 	h := hmac.New(sha256.New, secretkey)
 	h.Write(jwtData)
 	sign := h.Sum(nil)
 	if !hmac.Equal(sign, signature) {
-		return user, errors.New("signature verification failed")
+		return user, model.ErrSignatureVerification
 	}
 	if err = json.Unmarshal(jwtData, &ujwt); err != nil {
-		return user, errors.New("unmarshal user data failed")
+		return user, model.ErrUnmarshal
 	}
 	if ujwt.Exp < time.Now().Unix() {
-		return user, errors.New("user expired")
+		return user, model.ErrExpired
 	}
 	user.ID = ujwt.UID
 	return user, nil
@@ -136,24 +136,24 @@ func (srv *Service) GetAuthCookie(user model.User) string {
 }
 
 // GetUserLinks Получает все ссылки пользователя.
-func (srv *Service) GetUserLinks(userID uint32) ([]*model.Shorty, error) {
-	return srv.repo.GetShortysByUser(userID)
+func (srv *Service) GetUserLinks(ctx context.Context, userID uint32) ([]*model.Shorty, error) {
+	return srv.repo.GetShortysByUser(ctx, userID)
 }
 
 // DeleteLinks Удаляет ссылки пользователя по списку.
-func (srv *Service) DeleteLinks(URLs []string, userID uint32) error {
+func (srv *Service) DeleteLinks(ctx context.Context, URLs []string, userID uint32) error {
 	inputCh := deleteLinksFanIn(URLs)
 	var ids []string
 	for in := range inputCh {
 		ids = append(ids, in)
 	}
 
-	return srv.repo.DeleteLinks(ids, userID)
+	return srv.repo.DeleteLinks(ctx, ids, userID)
 }
 
-func (srv *Service) getShort(url string, attempt int) (string, error) {
+func (srv *Service) getShort(ctx context.Context, url string, attempt int) (string, error) {
 	if attempt >= maxAttempts {
-		return "", errors.New("failed to generate unique short url with max attempts")
+		return "", model.ErrGenerateURL
 	}
 	hash := sha1.Sum([]byte(url))
 	b := hash[:8]
@@ -162,10 +162,10 @@ func (srv *Service) getShort(url string, attempt int) (string, error) {
 		res[i] = chars[b[i]%52]
 	}
 	strID := string(res)
-	existingShortys := srv.repo.GetOriginalURL(strID)
+	existingShortys := srv.repo.GetOriginalURL(ctx, strID)
 	if existingShortys.OriginalURL != "" && existingShortys.OriginalURL != url {
 		ns := strconv.FormatInt(time.Now().UnixNano(), 10)
-		return srv.getShort(url+ns, attempt+1)
+		return srv.getShort(ctx, url+ns, attempt+1)
 	}
 	return strID, nil
 }

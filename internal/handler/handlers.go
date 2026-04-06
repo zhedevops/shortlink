@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -13,7 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
-	"github.com/zhedevops/shortlink/internal/container"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/service"
 )
@@ -29,11 +29,11 @@ type Handler struct {
 }
 
 // NewHandler Создаёт новый обработчик
-func NewHandler(app *container.App) *Handler {
+func NewHandler(audit *audit.AuditService, srv *service.Service, cnf *config.Config) *Handler {
 	return &Handler{
-		audit:   app.Audit,
-		service: app.Service,
-		Cfg:     app.Config,
+		audit:   audit,
+		service: srv,
+		Cfg:     cnf,
 	}
 }
 
@@ -51,7 +51,9 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 	}
 	defer r.Body.Close()
 	shortys := model.NewShortys("", string(body), "", user.ID)
-	link, err := h.service.CreateShortLink(shortys)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	link, err := h.service.CreateShortLink(ctx, shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
 			h.setErrorResponseOnConflict(w, link)
@@ -88,8 +90,10 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	defer r.Body.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	shortys := model.NewShortys("", req.URL, "", user.ID)
-	link, err := h.service.CreateShortLink(shortys)
+	link, err := h.service.CreateShortLink(ctx, shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
 			h.setShortenErrorResponseOnConflict(w, link)
@@ -130,10 +134,12 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	defer r.Body.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	resp := []model.ResponseBatch{}
 	for _, rb := range req {
 		shortys := model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
-		link, err := h.service.CreateShortLink(shortys)
+		link, err := h.service.CreateShortLink(ctx, shortys)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -154,8 +160,10 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 
 // GetLinkByIDHandler Получает оригинальную ссылку по короткой
 func (h *Handler) GetLinkByIDHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	id := chi.URLParam(r, "id")
-	urlStr, err := h.service.GetOriginalURL(id)
+	urlStr, err := h.service.GetOriginalURL(ctx, id)
 	if err != nil {
 		if errors.Is(err, model.ErrURLDeleted) {
 			writeJSONError(w, http.StatusGone, "url_is_deleted", err.Error())
@@ -191,7 +199,9 @@ func (h *Handler) UserLinksHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusInternalServerError, "handleCookie_failure", err.Error())
 		return
 	}
-	links, err := h.service.GetUserLinks(user.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	links, err := h.service.GetUserLinks(ctx, user.ID)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "service_GetUserLinks_failure", err.Error())
 	}
@@ -229,7 +239,9 @@ func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request)
 	}
 	defer r.Body.Close()
 	go func() {
-		_ = h.service.DeleteLinks(shortURLs, user.ID)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = h.service.DeleteLinks(ctx, shortURLs, user.ID)
 	}()
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -246,7 +258,9 @@ func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.Us
 		}
 	}
 	if needCreate {
-		user, err = h.service.GetNewUser()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		user, err = h.service.GetNewUser(ctx)
 		if err != nil {
 			return user, err
 		}

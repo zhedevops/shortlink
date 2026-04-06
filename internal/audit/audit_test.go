@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -17,7 +16,7 @@ func TestFileSink_Consume(t *testing.T) {
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "audit.json")
 
-	sink := &FileSink{Path: path, Mu: sync.Mutex{}}
+	sink := NewFileSink(path)
 
 	event := AuditEvent{
 		UserID: "123",
@@ -49,10 +48,7 @@ func TestRemoteSink_Consume(t *testing.T) {
 	}))
 	defer server.Close()
 
-	sink := &RemoteSink{
-		URL:    server.URL,
-		Client: server.Client(),
-	}
+	sink := NewRemoteSink(server.URL)
 
 	event := AuditEvent{
 		UserID: "1",
