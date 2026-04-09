@@ -36,7 +36,9 @@ func main() {
 }
 
 func run() error {
-	config.SetConfig()
+	if err := config.SetConfig(); err != nil {
+		return err
+	}
 	cnf := config.GetConfig()
 
 	if err := logger.Initialize(cnf.LogLevel); err != nil {

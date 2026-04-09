@@ -3,7 +3,6 @@ package config
 
 import (
 	"flag"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -78,9 +77,9 @@ func (addr *netAddress) Set(flagVal string) error {
 }
 
 // SetConfig Устанавливает конфигурацию.
-func SetConfig() {
+func SetConfig() error {
 	SetConfigByFlag()
-	parseEnvParams()
+	return parseEnvParams()
 }
 
 // GetConfig Возвращает конфигурацию.
@@ -88,11 +87,11 @@ func GetConfig() *Config {
 	return cfg
 }
 
-func parseEnvParams() {
+func parseEnvParams() error {
 	_ = godotenv.Load(".env")
 	var params EnvParams
 	if err := env.Parse(&params); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if params.ServerAddr != nil {
@@ -110,12 +109,12 @@ func parseEnvParams() {
 	}
 	path, err := filepath.Abs(cfg.FileStoragePath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	cfg.FileStoragePath = path
 	dir := filepath.Dir(cfg.FileStoragePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if params.DatabaseDsn != nil {
@@ -129,6 +128,8 @@ func parseEnvParams() {
 	if params.AuditURL != nil {
 		cfg.AuditURL = *params.AuditURL
 	}
+
+	return nil
 }
 
 // SetConfigByFlag Осуществляет установку значений конфигурации из переданных флагов.

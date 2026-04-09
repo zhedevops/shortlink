@@ -43,19 +43,28 @@ func Serve(h *handler.Handler) error {
 	}
 	// Канал для получения сигналов прерывания
 	signalChan := make(chan os.Signal, 1)
+	// Канал для обработки ошибки
+	errChan := make(chan error, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		log.Println("HTTP server started")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatal(err)
+			errChan <- err
+		} else {
+			errChan <- nil
 		}
 	}()
-	// Когда будет получен сигнал прерывания выполнится код
-	<-signalChan
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	log.Println("HTTP server stoped")
+	select {
+	case sig := <-signalChan:
+		// Когда будет получен сигнал прерывания выполнится код
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		log.Printf("HTTP server stoped with signal %v", sig)
 
-	return server.Shutdown(shutdownCtx)
+		return server.Shutdown(shutdownCtx)
+	case err := <-errChan:
+		// Если запуск сервиса вернул ошибку
+		return err
+	}
 }

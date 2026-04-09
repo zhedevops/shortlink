@@ -1,3 +1,4 @@
+// Package storage Хранилище данных
 package storage
 
 import (

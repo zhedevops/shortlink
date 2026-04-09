@@ -1,3 +1,4 @@
+// Package storage Файловое хранилище данных
 package storage
 
 import (
