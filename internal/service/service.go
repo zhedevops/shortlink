@@ -26,6 +26,7 @@ const maxAttempts = 5
 
 var secretkey = []byte("supersecretkey")
 
+// generate:reset
 type Service struct {
 	repo repository.Repository
 }

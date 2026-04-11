@@ -19,6 +19,7 @@ import (
 )
 
 // Handler Тип обработчика
+// generate:reset
 type Handler struct {
 	// audit Сервис аудита.
 	audit *audit.AuditService

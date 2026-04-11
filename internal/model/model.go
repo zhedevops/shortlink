@@ -15,6 +15,8 @@ import (
 //   - даты создания
 //   - идентификатора пользователя, создавшего ссылку
 //   - флага пометки в качестве удалённой записи.
+//
+// generate:reset
 type Shorty struct {
 	// UUID Идентификатор
 	UUID string `json:"uuid"`
@@ -31,34 +33,40 @@ type Shorty struct {
 }
 
 // Request Запрос, содержащий в теле json с оригинальной ссылкой.
+// generate:reset
 type Request struct {
 	URL string `json:"url"`
 }
 
 // Response json-ответ с результатом конвертации оригинальной ссылки.
+// generate:reset
 type Response struct {
 	Result string `json:"result"`
 }
 
 // RequestBatch Запрос, содержащий в теле json с множеством оригинальных ссылок и идентификатором для формирования ответа и привязки короткой ссылки к оригинальной.
+// generate:reset
 type RequestBatch struct {
 	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"original_url"`
 }
 
 // ResponseBatch json-ответ с результатом пакетной конвертации оригинальных ссылок.
+// generate:reset
 type ResponseBatch struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
 
 // ResponseUserLinks json-ответ, содержащий короткую и оригинальную ссылки.
+// generate:reset
 type ResponseUserLinks struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
 // ErrorResponse Сообщение об ошибке конфертации.
+// generate:reset
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
@@ -71,6 +79,7 @@ type User struct {
 }
 
 // UserJWT Тип, описывающий JWT пользователя, содержащий уникальный идентификатор и дату окончания действия JWT.
+// generate:reset
 type UserJWT struct {
 	UID uint32 `json:"uid"`
 	Exp int64  `json:"exp"`
