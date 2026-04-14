@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -16,7 +17,16 @@ import (
 	"github.com/zhedevops/shortlink/internal/storage"
 )
 
+var (
+	buildVersion = "N/"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
 func main() {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 	// Для профилирования CPU используем этот код
 	//f, err := os.Create("result.pprof")
 	//if err != nil {
