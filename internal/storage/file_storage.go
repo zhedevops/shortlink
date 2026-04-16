@@ -104,19 +104,19 @@ func (fs *FileStorage) SetShortURL(ctx context.Context, shortys *model.Shorty) e
 	return nil
 }
 
-func (fs *FileStorage) GetOriginalURL(ctx context.Context, id string) model.Shorty {
+func (fs *FileStorage) GetOriginalURL(ctx context.Context, id string) *model.Shorty {
 	_ = ctx
 	return findMatchingElement(fs.filepath, true, id)
 }
 
-func (fs *FileStorage) CheckIDByURL(url string) model.Shorty {
+func (fs *FileStorage) CheckIDByURL(url string) *model.Shorty {
 	return findMatchingElement(fs.filepath, false, url)
 }
 
-func findMatchingElement(filepath string, isShorten bool, searchValue string) model.Shorty {
+func findMatchingElement(filepath string, isShorten bool, searchValue string) *model.Shorty {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return model.Shorty{}
+		return &model.Shorty{}
 	}
 	defer func() {
 		_ = file.Close()
@@ -136,14 +136,14 @@ func findMatchingElement(filepath string, isShorten bool, searchValue string) mo
 		}
 		if isShorten {
 			if shortys.ShortURL == searchValue {
-				return shortys
+				return &shortys
 			}
 		} else {
 			if shortys.OriginalURL == searchValue {
-				return shortys
+				return &shortys
 			}
 		}
 	}
 
-	return model.Shorty{}
+	return &model.Shorty{}
 }

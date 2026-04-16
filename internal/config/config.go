@@ -31,6 +31,7 @@ type EnvParams struct {
 	DatabaseDsn     *string `env:"DATABASE_DSN"`
 	AuditFile       *string `env:"AUDIT_FILE"`
 	AuditURL        *string `env:"AUDIT_URL"`
+	Key             *string `env:"KEY" envDefault:"kjdfkklsdf932.fjs"`
 }
 
 // Config Тип конфигурации, содержащий всё необходимую информацю для работы сервиса.
@@ -42,6 +43,7 @@ type Config struct {
 	DatabaseDsn     string
 	AuditFile       string
 	AuditURL        string
+	Key             string
 }
 
 var cfg = &Config{

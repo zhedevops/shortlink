@@ -12,7 +12,9 @@ import (
 	"testing"
 	"time"
 
+	guid "github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/storage"
 )
@@ -23,7 +25,8 @@ func TestServiceFuncs(t *testing.T) {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
-	srv := NewService(fs)
+	cnf := config.GetConfig()
+	srv := NewService(fs, cnf)
 	url := "https://example.com"
 	user := model.User{
 		ID: 1,
@@ -31,7 +34,7 @@ func TestServiceFuncs(t *testing.T) {
 	user2 := model.User{
 		ID: 2,
 	}
-	shortys := model.NewShortys("", url, "", user.ID)
+	shortys := model.NewShortys(guid.New().String(), url, user.ID)
 	var value string
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -155,7 +158,7 @@ func TestServiceFuncs(t *testing.T) {
 
 	t.Run("unmarshal user data failed test CheckAuthCookie", func(t *testing.T) {
 		userData, _ := json.Marshal([]byte(`{invalid json}`))
-		h := hmac.New(sha256.New, secretkey)
+		h := hmac.New(sha256.New, []byte(cnf.Key))
 		h.Write(userData)
 		sign := h.Sum(nil)
 		newVc := base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)
@@ -174,7 +177,7 @@ func TestServiceFuncs(t *testing.T) {
 	t.Run("user expired test CheckAuthCookie", func(t *testing.T) {
 		// В структуре model.User нет ни UID, ни Exp, поэтому ждём user expired
 		userData, _ := json.Marshal(user2)
-		h := hmac.New(sha256.New, secretkey)
+		h := hmac.New(sha256.New, []byte(cnf.Key))
 		h.Write(userData)
 		sign := h.Sum(nil)
 		newVc := base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)
@@ -197,7 +200,8 @@ func BenchmarkService(b *testing.B) {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
-	srv := NewService(fs)
+	cnf := config.GetConfig()
+	srv := NewService(fs, cnf)
 	user := model.User{
 		ID: 1,
 	}

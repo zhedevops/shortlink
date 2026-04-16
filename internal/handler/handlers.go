@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	guid "github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
@@ -51,7 +52,7 @@ func (h *Handler) CreateShortLinkHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer r.Body.Close()
-	shortys := model.NewShortys("", string(body), "", user.ID)
+	shortys := model.NewShortys(guid.New().String(), string(body), user.ID)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	link, err := h.service.CreateShortLink(ctx, shortys)
@@ -87,13 +88,13 @@ func (h *Handler) CreateShortLinkEncHandler(w http.ResponseWriter, r *http.Reque
 	var req model.Request
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
-		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
+		http.Error(w, "cannot decode request JSON body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	shortys := model.NewShortys("", req.URL, "", user.ID)
+	shortys := model.NewShortys(guid.New().String(), req.URL, user.ID)
 	link, err := h.service.CreateShortLink(ctx, shortys)
 	if err != nil {
 		if errors.Is(err, model.ErrConflict) {
@@ -131,7 +132,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 	var req []model.RequestBatch
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
-		http.Error(w, "cannot decode request JSON body", http.StatusInternalServerError)
+		http.Error(w, "cannot decode request JSON body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -139,7 +140,7 @@ func (h *Handler) CreateShortLinkBatchHandler(w http.ResponseWriter, r *http.Req
 	defer cancel()
 	resp := []model.ResponseBatch{}
 	for _, rb := range req {
-		shortys := model.NewShortys(rb.CorrelationID, rb.OriginalURL, "", user.ID)
+		shortys := model.NewShortys(rb.CorrelationID, rb.OriginalURL, user.ID)
 		link, err := h.service.CreateShortLink(ctx, shortys)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

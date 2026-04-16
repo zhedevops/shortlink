@@ -78,7 +78,7 @@ func run() error {
 		completion = func() {}
 	}
 
-	srv := service.NewService(st)
+	srv := service.NewService(st, cnf)
 
 	var sinks []audit.AuditSink
 	af := strings.TrimSpace(cnf.AuditFile)

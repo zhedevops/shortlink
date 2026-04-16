@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/model"
 	"github.com/zhedevops/shortlink/internal/repository"
 )
@@ -24,16 +25,15 @@ import (
 const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const maxAttempts = 5
 
-var secretkey = []byte("supersecretkey")
-
 // generate:reset
 type Service struct {
 	repo repository.Repository
+	cfg  *config.Config
 }
 
 // NewService Создаёт сервис.
-func NewService(r repository.Repository) *Service {
-	return &Service{repo: r}
+func NewService(r repository.Repository, cnf *config.Config) *Service {
+	return &Service{repo: r, cfg: cnf}
 }
 
 // CreateShortLink Создаёт короткую ссылку.
@@ -51,7 +51,7 @@ func (srv *Service) CreateShortLink(ctx context.Context, shortys *model.Shorty) 
 	}
 	existingShortys := srv.repo.CheckIDByURL(urlStr)
 	if existingShortys.ShortURL != "" {
-		return &existingShortys, nil
+		return existingShortys, nil
 	}
 	id, err := srv.getShort(ctx, urlStr, 0)
 	if err != nil {
@@ -107,7 +107,7 @@ func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error)
 	if err != nil {
 		return user, model.ErrDecodeCookieSignature
 	}
-	h := hmac.New(sha256.New, secretkey)
+	h := hmac.New(sha256.New, []byte(srv.cfg.Key))
 	h.Write(jwtData)
 	sign := h.Sum(nil)
 	if !hmac.Equal(sign, signature) {
@@ -130,7 +130,7 @@ func (srv *Service) GetAuthCookie(user model.User) string {
 		Exp: time.Now().Add(time.Hour).Unix(),
 	}
 	userData, _ := json.Marshal(userJWT)
-	h := hmac.New(sha256.New, secretkey)
+	h := hmac.New(sha256.New, []byte(srv.cfg.Key))
 	h.Write(userData)
 	sign := h.Sum(nil)
 	return base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)

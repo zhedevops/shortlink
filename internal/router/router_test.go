@@ -21,7 +21,7 @@ func TestNewRouter(t *testing.T) {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
-	srv := service.NewService(fs)
+	srv := service.NewService(fs, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := handler.NewHandler(auditSrv, srv, cnf)

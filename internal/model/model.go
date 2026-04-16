@@ -4,8 +4,6 @@ package model
 import (
 	"errors"
 	"time"
-
-	guid "github.com/google/uuid"
 )
 
 // Shorty Базовая модель ссылки. Состоит из:
@@ -103,14 +101,16 @@ var (
 )
 
 // NewShortys Создаёт новую базовую модель ссылки.
-func NewShortys(uuid string, url string, id string, userID uint32) *Shorty {
-	if uuid == "" {
-		uuid = guid.New().String()
-	}
+func NewShortys(uuid string, url string, userID uint32) *Shorty {
 	return &Shorty{
 		UUID:        uuid,
 		OriginalURL: url,
-		ShortURL:    id,
 		UserID:      userID,
 	}
+}
+
+func AddShortys(uuid string, url string, id string, userID uint32) *Shorty {
+	shortys := NewShortys(uuid, url, userID)
+	shortys.ShortURL = id
+	return shortys
 }
