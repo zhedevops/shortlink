@@ -19,6 +19,9 @@ vet:
 vetstat:
 	go vet -vettool=$(which statictest) ./...
 
+scheck:
+	staticcheck ./...
+
 runfl:
 	go run cmd/shortener/main.go -a=localhost:8888 -b=ftp://localhost:8383 -l=fatal -f=data/files/flagpath/store.json
 

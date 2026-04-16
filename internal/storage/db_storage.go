@@ -1,3 +1,4 @@
+// Package storage Хранилище данных
 package storage
 
 import (
@@ -20,31 +21,21 @@ func NewDBStorage(pool *pgxpool.Pool) *DBStorage {
 }
 
 func (dbs *DBStorage) SetShortURL(ctx context.Context, shortys *model.Shorty) error {
-	tx, err := dbs.db.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = tx.Rollback(ctx)
-	}()
 	sql := `INSERT INTO shortys (uuid, short_url, original_url, user_id) 
 			VALUES ($1, $2, $3, $4) 
 			ON CONFLICT (original_url) 
 			    DO NOTHING
 			RETURNING uuid;`
 	var uuid string
-	err = tx.QueryRow(ctx, sql, shortys.UUID, shortys.ShortURL, shortys.OriginalURL, shortys.UserID).Scan(&uuid)
+	err := dbs.db.QueryRow(ctx, sql, shortys.UUID, shortys.ShortURL, shortys.OriginalURL, shortys.UserID).Scan(&uuid)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.ErrConflict
 	}
-	if err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
+	return err
 }
 
-func (dbs *DBStorage) GetOriginalURL(ctx context.Context, id string) model.Shorty {
-	row := dbs.db.QueryRow(ctx, `SELECT * FROM shortys WHERE short_url = $1`, id)
+func (dbs *DBStorage) GetOriginalURL(ctx context.Context, id string) *model.Shorty {
+	row := dbs.db.QueryRow(ctx, `SELECT uuid, short_url, original_url, created_at, user_id, is_deleted FROM shortys WHERE short_url = $1`, id)
 	var shortys model.Shorty
 	if err := row.Scan(
 		&shortys.UUID,
@@ -53,14 +44,14 @@ func (dbs *DBStorage) GetOriginalURL(ctx context.Context, id string) model.Short
 		&shortys.CreatedAt,
 		&shortys.UserID,
 		&shortys.DeletedFlag); err != nil {
-		return model.Shorty{}
+		return &model.Shorty{}
 	}
-	return shortys
+	return &shortys
 }
 
-func (dbs *DBStorage) CheckIDByURL(url string) model.Shorty {
+func (dbs *DBStorage) CheckIDByURL(url string) *model.Shorty {
 	_ = url
-	return model.Shorty{}
+	return &model.Shorty{}
 }
 
 func (dbs *DBStorage) Ping(ctx context.Context) error {

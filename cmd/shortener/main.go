@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -16,7 +17,16 @@ import (
 	"github.com/zhedevops/shortlink/internal/storage"
 )
 
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
 func main() {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 	// Для профилирования CPU используем этот код
 	//f, err := os.Create("result.pprof")
 	//if err != nil {
@@ -36,7 +46,9 @@ func main() {
 }
 
 func run() error {
-	config.SetConfig()
+	if err := config.SetConfig(); err != nil {
+		return err
+	}
 	cnf := config.GetConfig()
 
 	if err := logger.Initialize(cnf.LogLevel); err != nil {
@@ -66,7 +78,7 @@ func run() error {
 		completion = func() {}
 	}
 
-	srv := service.NewService(st)
+	srv := service.NewService(st, cnf)
 
 	var sinks []audit.AuditSink
 	af := strings.TrimSpace(cnf.AuditFile)

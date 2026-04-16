@@ -36,10 +36,10 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // CheckIDByURL mocks base method.
-func (m *MockRepository) CheckIDByURL(url string) model.Shorty {
+func (m *MockRepository) CheckIDByURL(url string) *model.Shorty {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckIDByURL", url)
-	ret0, _ := ret[0].(model.Shorty)
+	ret0, _ := ret[0].(*model.Shorty)
 	return ret0
 }
 
@@ -79,10 +79,10 @@ func (mr *MockRepositoryMockRecorder) DeleteLinks(ctx, ids, userID interface{}) 
 }
 
 // GetOriginalURL mocks base method.
-func (m *MockRepository) GetOriginalURL(ctx context.Context, id string) model.Shorty {
+func (m *MockRepository) GetOriginalURL(ctx context.Context, id string) *model.Shorty {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOriginalURL", ctx, id)
-	ret0, _ := ret[0].(model.Shorty)
+	ret0, _ := ret[0].(*model.Shorty)
 	return ret0
 }
 

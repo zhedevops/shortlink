@@ -37,7 +37,7 @@ func TestCreateShortLinkHandler(t *testing.T) {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
-	srv := service.NewService(fs)
+	srv := service.NewService(fs, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
@@ -160,7 +160,7 @@ func TestGetLinkByIDHandler(t *testing.T) {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
-	srv := service.NewService(fs)
+	srv := service.NewService(fs, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
@@ -269,7 +269,7 @@ func TestCreateShortLinkEncHandler(t *testing.T) {
 		_ = os.Remove(fileName)
 	}()
 	fs := storage.NewFileStorage(fileName)
-	srv := service.NewService(fs)
+	srv := service.NewService(fs, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
@@ -410,7 +410,7 @@ func TestHandler_PingHandler(t *testing.T) {
 	a.NotNil(pool)
 	a.IsType(&pgxpool.Pool{}, pool)
 	st := storage.NewDBStorage(pool)
-	srv := service.NewService(st)
+	srv := service.NewService(st, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
@@ -453,8 +453,8 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	user := model.User{
 		ID: 2,
 	}
-	value := model.Shorty{}
-	value2 := model.Shorty{
+	value := &model.Shorty{}
+	value2 := &model.Shorty{
 		UUID:        "69cc5e9c-404e-47c3-b9cf-7222f0122e37",
 		OriginalURL: "http://zgvx7h.ru",
 		ShortURL:    "BGTHakFB",
@@ -469,17 +469,17 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	m.EXPECT().GetOriginalURL(gomock.Any(), "HLYMhqfn").Return(value)
 	m.EXPECT().GetOriginalURL(gomock.Any(), "BGTHakFB").Return(value)
 	m.EXPECT().GetOriginalURL(gomock.Any(), "npDieteQ").Return(value)
-	shortys := model.NewShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
-	shortys2 := model.NewShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
-	shortys3 := model.NewShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
-	shortys4 := model.NewShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
+	shortys := model.AddShortys("d51eae65-0408-4d2d-997d-989f77f26e71", "http://dlf82a5xunr.net/vmzsxxp", "qknZDqRy", user.ID)
+	shortys2 := model.AddShortys("6200fd8b-a597-4167-97b9-7a6323117bc4", "http://rk2trgcml.biz/rltva/sklvun/m2u0jhvdvv3epe", "HLYMhqfn", user.ID)
+	shortys3 := model.AddShortys("69cc5e9c-404e-47c3-b9cf-7222f0122e37", "http://zgvx7h.ru", "BGTHakFB", user.ID)
+	shortys4 := model.AddShortys("8542f426-e340-45d7-b577-b36d5f08aee6", "http://qpsh6hy.biz", "npDieteQ", user.ID)
 	m.EXPECT().SetShortURL(gomock.Any(), shortys).Return(nil)
 	m.EXPECT().SetShortURL(gomock.Any(), shortys2).Return(nil)
 	m.EXPECT().SetShortURL(gomock.Any(), shortys3).Return(nil).Times(1)
 	m.EXPECT().SetShortURL(gomock.Any(), shortys4).Return(errors.New("db error")).Times(1)
 	target := "/api/shorten/batch"
 	cnf := config.GetConfig()
-	srv := service.NewService(m)
+	srv := service.NewService(m, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}
@@ -550,7 +550,7 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 				contentType: "application/json",
 			},
 			want: want{
-				code:        http.StatusInternalServerError,
+				code:        http.StatusBadRequest,
 				response:    "",
 				err:         "cannot decode request JSON body",
 				contentType: "text/plain",
@@ -645,15 +645,15 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 
 type fakeRepo struct{}
 
-func (f *fakeRepo) GetOriginalURL(ctx context.Context, id string) model.Shorty {
+func (f *fakeRepo) GetOriginalURL(ctx context.Context, id string) *model.Shorty {
 	_ = ctx
 	_ = id
-	return model.Shorty{}
+	return &model.Shorty{}
 }
 
-func (f *fakeRepo) CheckIDByURL(url string) model.Shorty {
+func (f *fakeRepo) CheckIDByURL(url string) *model.Shorty {
 	_ = url
-	shortys := model.Shorty{
+	shortys := &model.Shorty{
 		UUID:        "d51eae65-0408-4d2d-997d-989f77f26e71",
 		OriginalURL: "http://dlf82a5xunr.net/vmzsxxp",
 		ShortURL:    "qknZDqRy",
@@ -704,7 +704,7 @@ func ExampleHandler_CreateShortLinkHandler() {
 	//		ShortURL:    "qknZDqRy",
 	//		UserID:      2,
 	//	}
-	srv := service.NewService(&fakeRepo{})
+	srv := service.NewService(&fakeRepo{}, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: cnf}

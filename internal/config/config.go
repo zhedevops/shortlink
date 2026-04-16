@@ -3,7 +3,6 @@ package config
 
 import (
 	"flag"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -32,6 +31,7 @@ type EnvParams struct {
 	DatabaseDsn     *string `env:"DATABASE_DSN"`
 	AuditFile       *string `env:"AUDIT_FILE"`
 	AuditURL        *string `env:"AUDIT_URL"`
+	Key             *string `env:"KEY" envDefault:"kjdfkklsdf932.fjs"`
 }
 
 // Config Тип конфигурации, содержащий всё необходимую информацю для работы сервиса.
@@ -43,6 +43,7 @@ type Config struct {
 	DatabaseDsn     string
 	AuditFile       string
 	AuditURL        string
+	Key             string
 }
 
 var cfg = &Config{
@@ -78,9 +79,9 @@ func (addr *netAddress) Set(flagVal string) error {
 }
 
 // SetConfig Устанавливает конфигурацию.
-func SetConfig() {
+func SetConfig() error {
 	SetConfigByFlag()
-	parseEnvParams()
+	return parseEnvParams()
 }
 
 // GetConfig Возвращает конфигурацию.
@@ -88,11 +89,11 @@ func GetConfig() *Config {
 	return cfg
 }
 
-func parseEnvParams() {
+func parseEnvParams() error {
 	_ = godotenv.Load(".env")
 	var params EnvParams
 	if err := env.Parse(&params); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if params.ServerAddr != nil {
@@ -110,12 +111,12 @@ func parseEnvParams() {
 	}
 	path, err := filepath.Abs(cfg.FileStoragePath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	cfg.FileStoragePath = path
 	dir := filepath.Dir(cfg.FileStoragePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if params.DatabaseDsn != nil {
@@ -129,6 +130,8 @@ func parseEnvParams() {
 	if params.AuditURL != nil {
 		cfg.AuditURL = *params.AuditURL
 	}
+
+	return nil
 }
 
 // SetConfigByFlag Осуществляет установку значений конфигурации из переданных флагов.
