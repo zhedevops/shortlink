@@ -31,6 +31,7 @@ type EnvParams struct {
 	DatabaseDsn     *string `env:"DATABASE_DSN"`
 	AuditFile       *string `env:"AUDIT_FILE"`
 	AuditURL        *string `env:"AUDIT_URL"`
+	EnableHTTPS     *bool   `env:"ENABLE_HTTPS"`
 	Key             *string `env:"KEY" envDefault:"kjdfkklsdf932.fjs"`
 }
 
@@ -43,6 +44,7 @@ type Config struct {
 	DatabaseDsn     string
 	AuditFile       string
 	AuditURL        string
+	EnableHTTPS     bool
 	Key             string
 }
 
@@ -131,6 +133,10 @@ func parseEnvParams() error {
 		cfg.AuditURL = *params.AuditURL
 	}
 
+	if params.EnableHTTPS != nil {
+		cfg.EnableHTTPS = *params.EnableHTTPS
+	}
+
 	return nil
 }
 
@@ -143,5 +149,6 @@ func SetConfigByFlag() {
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "db dsn")
 	flag.StringVar(&cfg.AuditFile, "audit-file", "", "audit-file")
 	flag.StringVar(&cfg.AuditURL, "audit-url", "", "audit-url")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "EnableHTTPS")
 	flag.Parse()
 }

@@ -33,8 +33,13 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 // Serve Запускает сервис и осуществляет его корректную остановку
 func Serve(h *handler.Handler) error {
 	router := NewRouter(h)
+	tls := h.Cfg.EnableHTTPS
+	addr := h.Cfg.ServerAddr.ServerAddress
+	if tls {
+		addr = "localhost:8443"
+	}
 	server := &http.Server{
-		Addr:              h.Cfg.ServerAddr.ServerAddress,
+		Addr:              addr,
 		Handler:           router,
 		ReadTimeout:       5 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
@@ -47,12 +52,19 @@ func Serve(h *handler.Handler) error {
 	errChan := make(chan error, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		log.Println("HTTP server started")
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			errChan <- err
+		var err error
+		if !tls {
+			log.Println("HTTP server started")
+			err = server.ListenAndServe()
 		} else {
-			errChan <- nil
+			log.Println("HTTPS server started")
+			err = server.ListenAndServeTLS("localhost.pem", "localhost-key.pem")
 		}
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errChan <- err
+			return
+		}
+		errChan <- nil
 	}()
 
 	select {
