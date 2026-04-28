@@ -2,6 +2,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"net/url"
 	"os"
@@ -48,6 +49,17 @@ type Config struct {
 	Key             string
 }
 
+type ConfigFile struct {
+	ServerAddress   string `json:"server_address"`
+	BaseUrl         string `json:"base_url"`
+	LogLevel        string `json:"log_level"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDsn     string `json:"database_dsn"`
+	AuditFile       string `json:"audit_file"`
+	AuditURL        string `json:"audit_url"`
+	EnableHTTPS     bool   `json:"enable_https"`
+}
+
 var cfg = &Config{
 	ServerAddr:   &netAddress{ServerAddress: defaultAddress, withScheme: false},
 	ResponseAddr: &netAddress{ServerAddress: scheme + defaultAddress, withScheme: true},
@@ -82,6 +94,7 @@ func (addr *netAddress) Set(flagVal string) error {
 
 // SetConfig Устанавливает конфигурацию.
 func SetConfig() error {
+	SetConfigByConfigFile()
 	SetConfigByFlag()
 	return parseEnvParams()
 }
@@ -138,6 +151,59 @@ func parseEnvParams() error {
 	}
 
 	return nil
+}
+
+func SetConfigByConfigFile() {
+	var configPath string
+	flag.StringVar(&configPath, "c", "", "config file")
+	flag.StringVar(&configPath, "config", "", "config file")
+	flag.Parse()
+
+	if configPath == "" {
+		configPath = os.Getenv("CONFIG")
+	}
+
+	if configPath != "" {
+		fileCfg, err := loadConfig(configPath)
+		if err == nil {
+			if fileCfg.ServerAddress != "" {
+				cfg.ServerAddr = &netAddress{ServerAddress: fileCfg.ServerAddress, withScheme: false}
+			}
+			if fileCfg.BaseUrl != "" {
+				cfg.ResponseAddr = &netAddress{ServerAddress: fileCfg.BaseUrl, withScheme: true}
+			}
+			if fileCfg.LogLevel != "" {
+				cfg.LogLevel = fileCfg.LogLevel
+			}
+			if fileCfg.FileStoragePath != "" {
+				cfg.FileStoragePath = fileCfg.FileStoragePath
+			}
+			if fileCfg.DatabaseDsn != "" {
+				cfg.DatabaseDsn = fileCfg.DatabaseDsn
+			}
+			if fileCfg.AuditFile != "" {
+				cfg.AuditFile = fileCfg.AuditFile
+			}
+			if fileCfg.AuditURL != "" {
+				cfg.AuditURL = fileCfg.AuditURL
+			}
+			if fileCfg.EnableHTTPS {
+				cfg.EnableHTTPS = true
+			}
+		}
+	}
+}
+
+func loadConfig(path string) (ConfigFile, error) {
+	var cfg ConfigFile
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return cfg, err
+	}
+
+	err = json.Unmarshal(data, &cfg)
+	return cfg, err
 }
 
 // SetConfigByFlag Осуществляет установку значений конфигурации из переданных флагов.
