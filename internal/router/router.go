@@ -50,7 +50,7 @@ func Serve(h *handler.Handler) error {
 	signalChan := make(chan os.Signal, 1)
 	// Канал для обработки ошибки
 	errChan := make(chan error, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		var err error
 		if !tls {
