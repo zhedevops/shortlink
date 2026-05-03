@@ -158,7 +158,7 @@ func TestServiceFuncs(t *testing.T) {
 
 	t.Run("unmarshal user data failed test CheckAuthCookie", func(t *testing.T) {
 		userData, _ := json.Marshal([]byte(`{invalid json}`))
-		h := hmac.New(sha256.New, []byte(cnf.Key))
+		h := hmac.New(sha256.New, []byte(cnf.Security.Key))
 		h.Write(userData)
 		sign := h.Sum(nil)
 		newVc := base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)
@@ -177,7 +177,7 @@ func TestServiceFuncs(t *testing.T) {
 	t.Run("user expired test CheckAuthCookie", func(t *testing.T) {
 		// В структуре model.User нет ни UID, ни Exp, поэтому ждём user expired
 		userData, _ := json.Marshal(user2)
-		h := hmac.New(sha256.New, []byte(cnf.Key))
+		h := hmac.New(sha256.New, []byte(cnf.Security.Key))
 		h.Write(userData)
 		sign := h.Sum(nil)
 		newVc := base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)

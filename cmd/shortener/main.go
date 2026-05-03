@@ -51,15 +51,15 @@ func run() error {
 	}
 	cnf := config.GetConfig()
 
-	if err := logger.Initialize(cnf.LogLevel); err != nil {
+	if err := logger.Initialize(cnf.Log.LogLevel); err != nil {
 		return err
 	}
 
 	var completion func()
 
 	var st repository.Repository
-	dsn := strings.TrimSpace(cnf.DatabaseDsn)
-	fsp := strings.TrimSpace(cnf.FileStoragePath)
+	dsn := strings.TrimSpace(cnf.Storage.DatabaseDsn)
+	fsp := strings.TrimSpace(cnf.Storage.FileStoragePath)
 	if dsn != "" {
 		pool, err := database.ConnectDB(dsn)
 		if err != nil {
@@ -81,8 +81,8 @@ func run() error {
 	srv := service.NewService(st, cnf)
 
 	var sinks []audit.AuditSink
-	af := strings.TrimSpace(cnf.AuditFile)
-	au := strings.TrimSpace(cnf.AuditURL)
+	af := strings.TrimSpace(cnf.Audit.AuditFile)
+	au := strings.TrimSpace(cnf.Audit.AuditURL)
 	if af != "" {
 		fs := audit.NewFileSink(af)
 		sinks = append(sinks, fs)
@@ -93,9 +93,9 @@ func run() error {
 	}
 	auditSrv := audit.NewAuditService(sinks)
 
-	h := handler.NewHandler(auditSrv, srv, cnf)
+	h := handler.NewHandler(auditSrv, srv, &cnf.Server)
 
-	if err := router.Serve(h); err != nil {
+	if err := router.Serve(h, cnf.Server); err != nil {
 		return err
 	}
 

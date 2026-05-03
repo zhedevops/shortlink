@@ -27,11 +27,11 @@ type Handler struct {
 	// service Сервис, отвечающий за обработку запросов обработчика.
 	service *service.Service
 	// Cfg Конфигурация.
-	Cfg *config.Config
+	Cfg *config.ServerConfig
 }
 
 // NewHandler Создаёт новый обработчик
-func NewHandler(audit *audit.AuditService, srv *service.Service, cnf *config.Config) *Handler {
+func NewHandler(audit *audit.AuditService, srv *service.Service, cnf *config.ServerConfig) *Handler {
 	return &Handler{
 		audit:   audit,
 		service: srv,

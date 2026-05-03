@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/middleware"
 )
@@ -31,10 +32,15 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 }
 
 // Serve Запускает сервис и осуществляет его корректную остановку
-func Serve(h *handler.Handler) error {
+func Serve(h *handler.Handler, cnf config.ServerConfig) error {
 	router := NewRouter(h)
+	tls := cnf.EnableHTTPS
+	addr := cnf.ServerAddr.ServerAddress
+	if tls {
+		addr = "localhost:8443"
+	}
 	server := &http.Server{
-		Addr:              h.Cfg.ServerAddr.ServerAddress,
+		Addr:              addr,
 		Handler:           router,
 		ReadTimeout:       5 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
@@ -45,14 +51,21 @@ func Serve(h *handler.Handler) error {
 	signalChan := make(chan os.Signal, 1)
 	// Канал для обработки ошибки
 	errChan := make(chan error, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
-		log.Println("HTTP server started")
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			errChan <- err
+		var err error
+		if !tls {
+			log.Println("HTTP server started")
+			err = server.ListenAndServe()
 		} else {
-			errChan <- nil
+			log.Println("HTTPS server started")
+			err = server.ListenAndServeTLS("localhost.pem", "localhost-key.pem")
 		}
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errChan <- err
+			return
+		}
+		errChan <- nil
 	}()
 
 	select {
