@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/middleware"
 )
@@ -31,10 +32,10 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 }
 
 // Serve Запускает сервис и осуществляет его корректную остановку
-func Serve(h *handler.Handler) error {
+func Serve(h *handler.Handler, cnf config.ServerConfig) error {
 	router := NewRouter(h)
-	tls := h.Cfg.EnableHTTPS
-	addr := h.Cfg.ServerAddr.ServerAddress
+	tls := cnf.EnableHTTPS
+	addr := cnf.ServerAddr.ServerAddress
 	if tls {
 		addr = "localhost:8443"
 	}

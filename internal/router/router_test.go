@@ -24,7 +24,7 @@ func TestNewRouter(t *testing.T) {
 	srv := service.NewService(fs, cnf)
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
-	h := handler.NewHandler(auditSrv, srv, cnf)
+	h := handler.NewHandler(auditSrv, srv, &cnf.Server)
 	r := NewRouter(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ria.ru/"))

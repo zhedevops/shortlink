@@ -107,7 +107,7 @@ func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error)
 	if err != nil {
 		return user, model.ErrDecodeCookieSignature
 	}
-	h := hmac.New(sha256.New, []byte(srv.cfg.Key))
+	h := hmac.New(sha256.New, []byte(srv.cfg.Security.Key))
 	h.Write(jwtData)
 	sign := h.Sum(nil)
 	if !hmac.Equal(sign, signature) {
@@ -130,7 +130,7 @@ func (srv *Service) GetAuthCookie(user model.User) string {
 		Exp: time.Now().Add(time.Hour).Unix(),
 	}
 	userData, _ := json.Marshal(userJWT)
-	h := hmac.New(sha256.New, []byte(srv.cfg.Key))
+	h := hmac.New(sha256.New, []byte(srv.cfg.Security.Key))
 	h.Write(userData)
 	sign := h.Sum(nil)
 	return base64.StdEncoding.EncodeToString(userData) + "." + base64.StdEncoding.EncodeToString(sign)

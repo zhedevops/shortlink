@@ -38,15 +38,35 @@ type EnvParams struct {
 
 // Config Тип конфигурации, содержащий всё необходимую информацю для работы сервиса.
 type Config struct {
-	ServerAddr      *netAddress
-	ResponseAddr    *netAddress
-	LogLevel        string
+	Server   ServerConfig
+	Log      LogConfig
+	Storage  StorageConfig
+	Audit    AuditConfig
+	Security SecurityConfig
+}
+
+type ServerConfig struct {
+	ServerAddr   *netAddress
+	ResponseAddr *netAddress
+	EnableHTTPS  bool
+}
+
+type StorageConfig struct {
 	FileStoragePath string
 	DatabaseDsn     string
-	AuditFile       string
-	AuditURL        string
-	EnableHTTPS     bool
-	Key             string
+}
+
+type AuditConfig struct {
+	AuditFile string
+	AuditURL  string
+}
+
+type SecurityConfig struct {
+	Key string
+}
+
+type LogConfig struct {
+	LogLevel string
 }
 
 type ConfigFile struct {
@@ -60,9 +80,13 @@ type ConfigFile struct {
 	EnableHTTPS     bool   `json:"enable_https"`
 }
 
-var cfg = &Config{
+var serverConfig = ServerConfig{
 	ServerAddr:   &netAddress{ServerAddress: defaultAddress, withScheme: false},
 	ResponseAddr: &netAddress{ServerAddress: scheme + defaultAddress, withScheme: true},
+}
+
+var cfg = &Config{
+	Server: serverConfig,
 }
 
 func (addr *netAddress) String() string {
@@ -112,42 +136,46 @@ func parseEnvParams() error {
 	}
 
 	if params.ServerAddr != nil {
-		cfg.ServerAddr.ServerAddress = *params.ServerAddr
+		serverConfig.ServerAddr.ServerAddress = *params.ServerAddr
 	}
 	if params.ResponseAddr != nil {
-		cfg.ResponseAddr.ServerAddress = *params.ResponseAddr
+		serverConfig.ResponseAddr.ServerAddress = *params.ResponseAddr
 	}
 	if params.LogLevel != nil {
-		cfg.LogLevel = *params.LogLevel
+		cfg.Log.LogLevel = *params.LogLevel
 	}
 
 	if params.FileStoragePath != nil {
-		cfg.FileStoragePath = *params.FileStoragePath
+		cfg.Storage.FileStoragePath = *params.FileStoragePath
 	}
-	path, err := filepath.Abs(cfg.FileStoragePath)
+	path, err := filepath.Abs(cfg.Storage.FileStoragePath)
 	if err != nil {
 		return err
 	}
-	cfg.FileStoragePath = path
-	dir := filepath.Dir(cfg.FileStoragePath)
+	cfg.Storage.FileStoragePath = path
+	dir := filepath.Dir(cfg.Storage.FileStoragePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
 
 	if params.DatabaseDsn != nil {
-		cfg.DatabaseDsn = *params.DatabaseDsn
+		cfg.Storage.DatabaseDsn = *params.DatabaseDsn
 	}
 
 	if params.AuditFile != nil {
-		cfg.AuditFile = *params.AuditFile
+		cfg.Audit.AuditFile = *params.AuditFile
 	}
 
 	if params.AuditURL != nil {
-		cfg.AuditURL = *params.AuditURL
+		cfg.Audit.AuditURL = *params.AuditURL
 	}
 
 	if params.EnableHTTPS != nil {
-		cfg.EnableHTTPS = *params.EnableHTTPS
+		serverConfig.EnableHTTPS = *params.EnableHTTPS
+	}
+
+	if params.Key != nil {
+		cfg.Security.Key = *params.Key
 	}
 
 	return nil
@@ -160,35 +188,35 @@ func SetConfigByConfigFile() {
 	flag.Parse()
 
 	if configPath == "" {
-		configPath = os.Getenv("CONFIG")
+		configPath, _ = os.LookupEnv("CONFIG")
 	}
 
 	if configPath != "" {
 		fileCfg, err := loadConfig(configPath)
 		if err == nil {
 			if fileCfg.ServerAddress != "" {
-				cfg.ServerAddr = &netAddress{ServerAddress: fileCfg.ServerAddress, withScheme: false}
+				serverConfig.ServerAddr = &netAddress{ServerAddress: fileCfg.ServerAddress, withScheme: false}
 			}
 			if fileCfg.BaseUrl != "" {
-				cfg.ResponseAddr = &netAddress{ServerAddress: fileCfg.BaseUrl, withScheme: true}
+				serverConfig.ResponseAddr = &netAddress{ServerAddress: fileCfg.BaseUrl, withScheme: true}
 			}
 			if fileCfg.LogLevel != "" {
-				cfg.LogLevel = fileCfg.LogLevel
+				cfg.Log.LogLevel = fileCfg.LogLevel
 			}
 			if fileCfg.FileStoragePath != "" {
-				cfg.FileStoragePath = fileCfg.FileStoragePath
+				cfg.Storage.FileStoragePath = fileCfg.FileStoragePath
 			}
 			if fileCfg.DatabaseDsn != "" {
-				cfg.DatabaseDsn = fileCfg.DatabaseDsn
+				cfg.Storage.DatabaseDsn = fileCfg.DatabaseDsn
 			}
 			if fileCfg.AuditFile != "" {
-				cfg.AuditFile = fileCfg.AuditFile
+				cfg.Audit.AuditFile = fileCfg.AuditFile
 			}
 			if fileCfg.AuditURL != "" {
-				cfg.AuditURL = fileCfg.AuditURL
+				cfg.Audit.AuditURL = fileCfg.AuditURL
 			}
 			if fileCfg.EnableHTTPS {
-				cfg.EnableHTTPS = true
+				serverConfig.EnableHTTPS = true
 			}
 		}
 	}
@@ -208,13 +236,13 @@ func loadConfig(path string) (ConfigFile, error) {
 
 // SetConfigByFlag Осуществляет установку значений конфигурации из переданных флагов.
 func SetConfigByFlag() {
-	flag.Var(cfg.ServerAddr, "a", "server address host:port")
-	flag.Var(cfg.ResponseAddr, "b", "server response base address protocol://host:port")
-	flag.StringVar(&cfg.LogLevel, "l", "info", "log level")
-	flag.StringVar(&cfg.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
-	flag.StringVar(&cfg.DatabaseDsn, "d", "", "db dsn")
-	flag.StringVar(&cfg.AuditFile, "audit-file", "", "audit-file")
-	flag.StringVar(&cfg.AuditURL, "audit-url", "", "audit-url")
-	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "EnableHTTPS")
+	flag.Var(serverConfig.ServerAddr, "a", "server address host:port")
+	flag.Var(serverConfig.ResponseAddr, "b", "server response base address protocol://host:port")
+	flag.StringVar(&cfg.Log.LogLevel, "l", "info", "log level")
+	flag.StringVar(&cfg.Storage.FileStoragePath, "f", "data/files/defaultpath/store.json", "storage path")
+	flag.StringVar(&cfg.Storage.DatabaseDsn, "d", "", "db dsn")
+	flag.StringVar(&cfg.Audit.AuditFile, "audit-file", "", "audit-file")
+	flag.StringVar(&cfg.Audit.AuditURL, "audit-url", "", "audit-url")
+	flag.BoolVar(&serverConfig.EnableHTTPS, "s", false, "EnableHTTPS")
 	flag.Parse()
 }
