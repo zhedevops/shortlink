@@ -171,6 +171,10 @@ func (srv *Service) getShort(ctx context.Context, url string, attempt int) (stri
 	return strID, nil
 }
 
+func (srv *Service) GetStats(ctx context.Context) (model.ResponseStats, error) {
+	return srv.repo.GetStats(ctx)
+}
+
 func deleteLinksFanIn(URLs []string) chan string {
 	inputCh := make(chan string, len(URLs))
 	go func() {

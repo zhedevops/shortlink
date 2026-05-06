@@ -63,6 +63,11 @@ type ResponseUserLinks struct {
 	OriginalURL string `json:"original_url"`
 }
 
+type ResponseStats struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
+}
+
 // ErrorResponse Сообщение об ошибке конфертации.
 // generate:reset
 type ErrorResponse struct {

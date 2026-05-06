@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -246,6 +248,48 @@ func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request)
 		_ = h.service.DeleteLinks(ctx, shortURLs, user.ID)
 	}()
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (h *Handler) StatsHandler(w http.ResponseWriter, r *http.Request) {
+	if h.Cfg.TrustedSubnet != "" {
+		ipStr := r.Header.Get("X-Real-IP")
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			// если заголовок X-Real-IP пуст, пробуем X-Forwarded-For
+			// этот заголовок содержит адреса отправителя и промежуточных прокси
+			// в виде 203.0.113.195, 70.41.3.18, 150.172.238.178
+			ips := r.Header.Get("X-Forwarded-For")
+			// разделяем цепочку адресов
+			ipStrs := strings.Split(ips, ",")
+			// интересует только первый
+			ipStr = strings.TrimSpace(ipStrs[0])
+			// парсим
+			ip = net.ParseIP(ipStr)
+		}
+		if ip == nil {
+			writeJSONError(w, http.StatusInternalServerError, "service_StatsHandler_failure", "failed parse ip from http header")
+			return
+		}
+		_, ipNet, _ := net.ParseCIDR(h.Cfg.TrustedSubnet)
+		if !ipNet.Contains(ip) {
+			writeJSONError(w, http.StatusForbidden, "service_StatsHandler_failure", "invalid ip")
+			return
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := h.service.GetStats(ctx)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "service_StatsHandler_failure", err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		log.Error().Err(err).Msg("error encoding response")
+	}
 }
 
 func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.User, error) {

@@ -691,6 +691,14 @@ func (f *fakeRepo) DeleteLinks(ctx context.Context, ids []string, userID uint32)
 	return nil
 }
 
+func (f *fakeRepo) GetStats(ctx context.Context) (model.ResponseStats, error) {
+	_ = ctx
+	return model.ResponseStats{
+		URLs:  10,
+		Users: 8,
+	}, nil
+}
+
 // Пример создания короткой ссылки.
 func ExampleHandler_CreateShortLinkHandler() {
 	// Создаём пользователя
@@ -732,4 +740,69 @@ func ExampleHandler_CreateShortLinkHandler() {
 
 	// Output:
 	// 201
+}
+
+func TestStatsHandler(t *testing.T) {
+	cnf := config.GetConfig()
+	cnf.Server.TrustedSubnet = "192.168.1.0/24"
+	srv := service.NewService(&fakeRepo{}, cnf)
+	var sinks []audit.AuditSink
+	auditSrv := audit.NewAuditService(sinks)
+	h := &Handler{audit: auditSrv, service: srv, Cfg: &cnf.Server}
+
+	t.Run("OK", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
+		req.Header.Set("X-Real-IP", "192.168.1.10")
+
+		w := httptest.NewRecorder()
+
+		h.StatsHandler(w, req)
+
+		resp := w.Result()
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+
+		var s model.ResponseStats
+		err := json.NewDecoder(resp.Body).Decode(&s)
+		if err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+
+		if s.URLs != 10 || s.Users != 8 {
+			t.Errorf("unexpected body: %+v", s)
+		}
+	})
+
+	t.Run("Forbidden", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
+		req.Header.Set("X-Real-IP", "10.0.0.1")
+
+		w := httptest.NewRecorder()
+
+		h.StatsHandler(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("InvalidIP", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/internal/stats", nil)
+		req.Header.Set("X-Real-IP", "not-an-ip")
+
+		w := httptest.NewRecorder()
+
+		h.StatsHandler(w, req)
+
+		resp := w.Result()
+
+		if resp.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected 500, got %d", resp.StatusCode)
+		}
+	})
 }
