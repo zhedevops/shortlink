@@ -483,7 +483,7 @@ func TestHandler_CreateShortLinkBatchHandler(t *testing.T) {
 	var sinks []audit.AuditSink
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: &cnf.Server}
-	ac := h.service.GetAuthCookie(user)
+	ac := h.service.GetAuthToken(user)
 	cookie := &http.Cookie{
 		Name:     "Authorization",
 		Value:    ac,
@@ -717,7 +717,7 @@ func ExampleHandler_CreateShortLinkHandler() {
 	auditSrv := audit.NewAuditService(sinks)
 	h := &Handler{audit: auditSrv, service: srv, Cfg: &cnf.Server}
 	// Создаём cookie для пользователя
-	ac := h.service.GetAuthCookie(user)
+	ac := h.service.GetAuthToken(user)
 	cookie := &http.Cookie{
 		Name:     "Authorization",
 		Value:    ac,

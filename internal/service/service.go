@@ -93,19 +93,25 @@ func (srv *Service) GetNewUser(ctx context.Context) (model.User, error) {
 
 // CheckAuthCookie Проверяет авторизационную cookie.
 func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error) {
+	token := cookieAuth.Value
+
+	return srv.ParseAuthToken(token)
+}
+
+func (srv *Service) ParseAuthToken(token string) (model.User, error) {
 	user := model.User{}
 	ujwt := model.UserJWT{}
-	values := strings.Split(cookieAuth.Value, ".")
+	values := strings.Split(token, ".")
 	if len(values) != 2 {
-		return user, model.ErrBadCookie
+		return model.User{}, model.ErrBadAuthToken
 	}
 	jwtData, err := base64.StdEncoding.DecodeString(values[0])
 	if err != nil {
-		return user, model.ErrDecodeCookie
+		return user, model.ErrDecodeAuthToken
 	}
 	signature, err := base64.StdEncoding.DecodeString(values[1])
 	if err != nil {
-		return user, model.ErrDecodeCookieSignature
+		return user, model.ErrDecodeAuthTokenSignature
 	}
 	h := hmac.New(sha256.New, []byte(srv.cfg.Security.Key))
 	h.Write(jwtData)
@@ -123,8 +129,8 @@ func (srv *Service) CheckAuthCookie(cookieAuth *http.Cookie) (model.User, error)
 	return user, nil
 }
 
-// GetAuthCookie Создаёт авторизационную cookie.
-func (srv *Service) GetAuthCookie(user model.User) string {
+// GetAuthToken Создаёт авторизационную cookie.
+func (srv *Service) GetAuthToken(user model.User) string {
 	userJWT := model.UserJWT{
 		UID: user.ID,
 		Exp: time.Now().Add(time.Hour).Unix(),

@@ -75,8 +75,8 @@ func TestServiceFuncs(t *testing.T) {
 		assert.Empty(t, gotURL)
 	})
 
-	t.Run("success test GetAuthCookie", func(t *testing.T) {
-		value = srv.GetAuthCookie(user)
+	t.Run("success test GetAuthToken", func(t *testing.T) {
+		value = srv.GetAuthToken(user)
 		assert.NotNil(t, value)
 		assert.Contains(t, value, ".")
 	})
@@ -93,7 +93,7 @@ func TestServiceFuncs(t *testing.T) {
 		assert.Equal(t, mu.ID, user.ID)
 	})
 
-	t.Run("bad cookie value test CheckAuthCookie", func(t *testing.T) {
+	t.Run("bad auth token test CheckAuthCookie", func(t *testing.T) {
 		vc := strings.ReplaceAll(value, ".", "")
 		cookie := &http.Cookie{
 			Name:     "Authorization",
@@ -103,11 +103,11 @@ func TestServiceFuncs(t *testing.T) {
 		}
 		mu, err := srv.CheckAuthCookie(cookie)
 		assert.NotNil(t, err)
-		assert.Equal(t, "bad cookie value", err.Error())
+		assert.Equal(t, "bad auth token", err.Error())
 		assert.Empty(t, mu)
 	})
 
-	t.Run("decode cookie value failed test CheckAuthCookie", func(t *testing.T) {
+	t.Run("decode auth token failed test CheckAuthCookie", func(t *testing.T) {
 		values := strings.Split(value, ".")
 		data := values[0][:len(values[0])-3]
 		newVc := data + "." + values[1]
@@ -119,11 +119,11 @@ func TestServiceFuncs(t *testing.T) {
 		}
 		mu, err := srv.CheckAuthCookie(cookie)
 		assert.NotNil(t, err)
-		assert.Equal(t, "decode cookie value failed", err.Error())
+		assert.Equal(t, "decode auth token failed", err.Error())
 		assert.Empty(t, mu)
 	})
 
-	t.Run("decode cookie value signature failed test CheckAuthCookie", func(t *testing.T) {
+	t.Run("decode auth token signature failed test CheckAuthCookie", func(t *testing.T) {
 		values := strings.Split(value, ".")
 		sign := values[1][:len(values[1])-3]
 		newVc := values[0] + "." + sign
@@ -135,12 +135,12 @@ func TestServiceFuncs(t *testing.T) {
 		}
 		mu, err := srv.CheckAuthCookie(cookie)
 		assert.NotNil(t, err)
-		assert.Equal(t, "decode cookie value signature failed", err.Error())
+		assert.Equal(t, "decode auth token signature failed", err.Error())
 		assert.Empty(t, mu)
 	})
 
 	t.Run("signature verification failed test CheckAuthCookie", func(t *testing.T) {
-		value2 := srv.GetAuthCookie(user2)
+		value2 := srv.GetAuthToken(user2)
 		values2 := strings.Split(value2, ".")
 		values := strings.Split(value, ".")
 		newVc := values2[0] + "." + values[1]
@@ -227,9 +227,9 @@ func BenchmarkService(b *testing.B) {
 			_, _ = srv.GetOriginalURL(ctx, "CZAqzwap")
 		}
 	})
-	b.Run("GetAuthCookie", func(b *testing.B) {
+	b.Run("GetAuthToken", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			value = srv.GetAuthCookie(user)
+			value = srv.GetAuthToken(user)
 		}
 	})
 	b.Run("CheckAuthCookie", func(b *testing.B) {

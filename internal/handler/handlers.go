@@ -310,7 +310,8 @@ func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.Us
 		if err != nil {
 			return user, err
 		}
-		ac := h.service.GetAuthCookie(user)
+		ac := h.service.GetAuthToken(user)
+		//fmt.Println(ac)
 		http.SetCookie(w, &http.Cookie{
 			Name:     "Authorization",
 			Value:    ac,

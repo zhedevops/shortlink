@@ -35,6 +35,7 @@ type EnvParams struct {
 	EnableHTTPS     *bool   `env:"ENABLE_HTTPS"`
 	TrustedSubnet   *string `env:"TRUSTED_SUBNET"`
 	Key             *string `env:"KEY" envDefault:"kjdfkklsdf932.fjs"`
+	GRPCAddress     *string `env:"GRPC_ADDRESS" envDefault:":3200"`
 }
 
 // Config Тип конфигурации, содержащий всё необходимую информацю для работы сервиса.
@@ -51,6 +52,7 @@ type ServerConfig struct {
 	ResponseAddr  *netAddress
 	EnableHTTPS   bool
 	TrustedSubnet string
+	GRPCAddress   string
 }
 
 type StorageConfig struct {
@@ -179,6 +181,10 @@ func parseEnvParams() error {
 
 	if params.TrustedSubnet != nil {
 		cfg.Server.TrustedSubnet = *params.TrustedSubnet
+	}
+
+	if params.GRPCAddress != nil {
+		cfg.Server.GRPCAddress = *params.GRPCAddress
 	}
 
 	if params.Key != nil {

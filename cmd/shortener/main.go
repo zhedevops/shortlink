@@ -9,6 +9,7 @@ import (
 	"github.com/zhedevops/shortlink/internal/audit"
 	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/database"
+	grpcserver "github.com/zhedevops/shortlink/internal/grpc"
 	"github.com/zhedevops/shortlink/internal/handler"
 	"github.com/zhedevops/shortlink/internal/logger"
 	"github.com/zhedevops/shortlink/internal/repository"
@@ -78,6 +79,8 @@ func run() error {
 		completion = func() {}
 	}
 
+	defer completion()
+
 	srv := service.NewService(st, cnf)
 
 	var sinks []audit.AuditSink
@@ -95,11 +98,17 @@ func run() error {
 
 	h := handler.NewHandler(auditSrv, srv, &cnf.Server)
 
-	if err := router.Serve(h, cnf.Server); err != nil {
-		return err
-	}
+	errChan := make(chan error, 2)
 
-	completion()
+	go func() {
+		errChan <- router.Serve(h, cnf.Server)
+	}()
 
-	return nil
+	go func() {
+		errChan <- grpcserver.Serve(srv, cnf.Server)
+	}()
+
+	err := <-errChan
+
+	return err
 }
