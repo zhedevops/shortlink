@@ -756,7 +756,11 @@ func TestStatsHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		h.StatsHandler(w, req)
+		handler := middleware.TrustedSubnet(cnf.Server)(
+			http.HandlerFunc(h.StatsHandler),
+		)
+
+		handler.ServeHTTP(w, req)
 
 		resp := w.Result()
 		defer resp.Body.Close()
@@ -782,7 +786,11 @@ func TestStatsHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		h.StatsHandler(w, req)
+		handler := middleware.TrustedSubnet(cnf.Server)(
+			http.HandlerFunc(h.StatsHandler),
+		)
+
+		handler.ServeHTTP(w, req)
 
 		resp := w.Result()
 
@@ -797,12 +805,16 @@ func TestStatsHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		h.StatsHandler(w, req)
+		handler := middleware.TrustedSubnet(cnf.Server)(
+			http.HandlerFunc(h.StatsHandler),
+		)
+
+		handler.ServeHTTP(w, req)
 
 		resp := w.Result()
 
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected 500, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", resp.StatusCode)
 		}
 	})
 }

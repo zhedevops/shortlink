@@ -6,10 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -251,32 +249,6 @@ func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) StatsHandler(w http.ResponseWriter, r *http.Request) {
-	if h.Cfg.TrustedSubnet != "" {
-		ipStr := r.Header.Get("X-Real-IP")
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			// если заголовок X-Real-IP пуст, пробуем X-Forwarded-For
-			// этот заголовок содержит адреса отправителя и промежуточных прокси
-			// в виде 203.0.113.195, 70.41.3.18, 150.172.238.178
-			ips := r.Header.Get("X-Forwarded-For")
-			// разделяем цепочку адресов
-			ipStrs := strings.Split(ips, ",")
-			// интересует только первый
-			ipStr = strings.TrimSpace(ipStrs[0])
-			// парсим
-			ip = net.ParseIP(ipStr)
-		}
-		if ip == nil {
-			writeJSONError(w, http.StatusInternalServerError, "service_StatsHandler_failure", "failed parse ip from http header")
-			return
-		}
-		_, ipNet, _ := net.ParseCIDR(h.Cfg.TrustedSubnet)
-		if !ipNet.Contains(ip) {
-			writeJSONError(w, http.StatusForbidden, "service_StatsHandler_failure", "invalid ip")
-			return
-		}
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	resp, err := h.service.GetStats(ctx)
@@ -311,7 +283,6 @@ func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.Us
 			return user, err
 		}
 		ac := h.service.GetAuthToken(user)
-		//fmt.Println(ac)
 		http.SetCookie(w, &http.Cookie{
 			Name:     "Authorization",
 			Value:    ac,
