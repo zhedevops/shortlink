@@ -248,6 +248,22 @@ func (h *Handler) DeleteLinkBatchHandler(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusAccepted)
 }
 
+func (h *Handler) StatsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := h.service.GetStats(ctx)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "service_StatsHandler_failure", err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(resp); err != nil {
+		log.Error().Err(err).Msg("error encoding response")
+	}
+}
+
 func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.User, error) {
 	cookieAuth, err := r.Cookie("Authorization")
 	user := model.User{}
@@ -266,7 +282,7 @@ func (h *Handler) handleCookie(w http.ResponseWriter, r *http.Request) (model.Us
 		if err != nil {
 			return user, err
 		}
-		ac := h.service.GetAuthCookie(user)
+		ac := h.service.GetAuthToken(user)
 		http.SetCookie(w, &http.Cookie{
 			Name:     "Authorization",
 			Value:    ac,

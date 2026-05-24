@@ -63,6 +63,11 @@ type ResponseUserLinks struct {
 	OriginalURL string `json:"original_url"`
 }
 
+type ResponseStats struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
+}
+
 // ErrorResponse Сообщение об ошибке конфертации.
 // generate:reset
 type ErrorResponse struct {
@@ -84,20 +89,20 @@ type UserJWT struct {
 }
 
 var (
-	ErrConflict               = errors.New("data conflict")
-	ErrURLDeleted             = errors.New("url is deleted")
-	ErrEmptyURL               = errors.New("empty url")
-	ErrWrongID                = errors.New("unexpected length id")
-	ErrURLNotFound            = errors.New("url not found")
-	ErrBadCookie              = errors.New("bad cookie value")
-	ErrDecodeCookie           = errors.New("decode cookie value failed")
-	ErrDecodeCookieSignature  = errors.New("decode cookie value signature failed")
-	ErrSignatureVerification  = errors.New("signature verification failed")
-	ErrUnmarshal              = errors.New("unmarshal user data failed")
-	ErrExpired                = errors.New("user expired")
-	ErrGenerateURL            = errors.New("failed to generate unique short url with max attempts")
-	ErrServerAddressFlagValue = errors.New("need url in a form protocol:host:port")
-	ErrHostPort               = errors.New("host or port is empty")
+	ErrConflict                 = errors.New("data conflict")
+	ErrURLDeleted               = errors.New("url is deleted")
+	ErrEmptyURL                 = errors.New("empty url")
+	ErrWrongID                  = errors.New("unexpected length id")
+	ErrURLNotFound              = errors.New("url not found")
+	ErrBadAuthToken             = errors.New("bad auth token")
+	ErrDecodeAuthToken          = errors.New("decode auth token failed")
+	ErrDecodeAuthTokenSignature = errors.New("decode auth token signature failed")
+	ErrSignatureVerification    = errors.New("signature verification failed")
+	ErrUnmarshal                = errors.New("unmarshal user data failed")
+	ErrExpired                  = errors.New("user expired")
+	ErrGenerateURL              = errors.New("failed to generate unique short url with max attempts")
+	ErrServerAddressFlagValue   = errors.New("need url in a form protocol:host:port")
+	ErrHostPort                 = errors.New("host or port is empty")
 )
 
 // NewShortys Создаёт новую базовую модель ссылки.

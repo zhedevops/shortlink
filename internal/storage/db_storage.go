@@ -108,3 +108,13 @@ func (dbs *DBStorage) DeleteLinks(ctx context.Context, ids []string, userID uint
 	}
 	return tx.Commit(ctx)
 }
+
+func (dbs *DBStorage) GetStats(ctx context.Context) (model.ResponseStats, error) {
+	stats := model.ResponseStats{}
+	row := dbs.db.QueryRow(ctx, `SELECT count(short_url) as urls, count(DISTINCT user_id) as users FROM shortys`)
+	if err := row.Scan(&stats.URLs, &stats.Users); err != nil {
+		return stats, err
+	}
+
+	return stats, nil
+}

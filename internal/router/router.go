@@ -18,12 +18,13 @@ import (
 )
 
 // NewRouter Создаёт новый маршрутизатор
-func NewRouter(h *handler.Handler) *chi.Mux {
+func NewRouter(h *handler.Handler, cnf config.ServerConfig) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.GzipHandle)
 	r.Get("/{id}", h.GetLinkByIDHandler)
 	r.Get("/ping", h.PingHandler)
 	r.Get("/api/user/urls", h.UserLinksHandler)
+	r.With(middleware.TrustedSubnet(cnf)).Get("/api/internal/stats", h.StatsHandler)
 	r.With(middleware.RequireContentType("text/plain")).Post("/", h.CreateShortLinkHandler)
 	r.With(middleware.RequireContentType("application/json")).Post("/api/shorten", h.CreateShortLinkEncHandler)
 	r.With(middleware.RequireContentType("application/json")).Post("/api/shorten/batch", h.CreateShortLinkBatchHandler)
@@ -33,7 +34,7 @@ func NewRouter(h *handler.Handler) *chi.Mux {
 
 // Serve Запускает сервис и осуществляет его корректную остановку
 func Serve(h *handler.Handler, cnf config.ServerConfig) error {
-	router := NewRouter(h)
+	router := NewRouter(h, cnf)
 	tls := cnf.EnableHTTPS
 	addr := cnf.ServerAddr.ServerAddress
 	if tls {

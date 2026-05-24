@@ -68,3 +68,8 @@ func (ms *MemoryStorage) CheckIDByURL(url string) *model.Shorty {
 	}
 	return &model.Shorty{}
 }
+
+func (ms *MemoryStorage) GetStats(ctx context.Context) (model.ResponseStats, error) {
+	_ = ctx
+	return model.ResponseStats{}, nil
+}

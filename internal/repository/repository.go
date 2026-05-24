@@ -16,4 +16,5 @@ type Repository interface {
 	CreateUser(ctx context.Context) (model.User, error)
 	GetShortysByUser(ctx context.Context, userID uint32) ([]*model.Shorty, error)
 	DeleteLinks(ctx context.Context, ids []string, userID uint32) error
+	GetStats(ctx context.Context) (model.ResponseStats, error)
 }

@@ -33,7 +33,9 @@ type EnvParams struct {
 	AuditFile       *string `env:"AUDIT_FILE"`
 	AuditURL        *string `env:"AUDIT_URL"`
 	EnableHTTPS     *bool   `env:"ENABLE_HTTPS"`
+	TrustedSubnet   *string `env:"TRUSTED_SUBNET"`
 	Key             *string `env:"KEY" envDefault:"kjdfkklsdf932.fjs"`
+	GRPCAddress     *string `env:"GRPC_ADDRESS" envDefault:":3200"`
 }
 
 // Config Тип конфигурации, содержащий всё необходимую информацю для работы сервиса.
@@ -46,9 +48,11 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	ServerAddr   *netAddress
-	ResponseAddr *netAddress
-	EnableHTTPS  bool
+	ServerAddr    *netAddress
+	ResponseAddr  *netAddress
+	EnableHTTPS   bool
+	TrustedSubnet string
+	GRPCAddress   string
 }
 
 type StorageConfig struct {
@@ -78,6 +82,7 @@ type ConfigFile struct {
 	AuditFile       string `json:"audit_file"`
 	AuditURL        string `json:"audit_url"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 var serverConfig = ServerConfig{
@@ -136,10 +141,10 @@ func parseEnvParams() error {
 	}
 
 	if params.ServerAddr != nil {
-		serverConfig.ServerAddr.ServerAddress = *params.ServerAddr
+		cfg.Server.ServerAddr.ServerAddress = *params.ServerAddr
 	}
 	if params.ResponseAddr != nil {
-		serverConfig.ResponseAddr.ServerAddress = *params.ResponseAddr
+		cfg.Server.ResponseAddr.ServerAddress = *params.ResponseAddr
 	}
 	if params.LogLevel != nil {
 		cfg.Log.LogLevel = *params.LogLevel
@@ -171,7 +176,15 @@ func parseEnvParams() error {
 	}
 
 	if params.EnableHTTPS != nil {
-		serverConfig.EnableHTTPS = *params.EnableHTTPS
+		cfg.Server.EnableHTTPS = *params.EnableHTTPS
+	}
+
+	if params.TrustedSubnet != nil {
+		cfg.Server.TrustedSubnet = *params.TrustedSubnet
+	}
+
+	if params.GRPCAddress != nil {
+		cfg.Server.GRPCAddress = *params.GRPCAddress
 	}
 
 	if params.Key != nil {
@@ -195,10 +208,10 @@ func SetConfigByConfigFile() {
 		fileCfg, err := loadConfig(configPath)
 		if err == nil {
 			if fileCfg.ServerAddress != "" {
-				serverConfig.ServerAddr = &netAddress{ServerAddress: fileCfg.ServerAddress, withScheme: false}
+				cfg.Server.ServerAddr = &netAddress{ServerAddress: fileCfg.ServerAddress, withScheme: false}
 			}
 			if fileCfg.BaseUrl != "" {
-				serverConfig.ResponseAddr = &netAddress{ServerAddress: fileCfg.BaseUrl, withScheme: true}
+				cfg.Server.ResponseAddr = &netAddress{ServerAddress: fileCfg.BaseUrl, withScheme: true}
 			}
 			if fileCfg.LogLevel != "" {
 				cfg.Log.LogLevel = fileCfg.LogLevel
@@ -216,7 +229,10 @@ func SetConfigByConfigFile() {
 				cfg.Audit.AuditURL = fileCfg.AuditURL
 			}
 			if fileCfg.EnableHTTPS {
-				serverConfig.EnableHTTPS = true
+				cfg.Server.EnableHTTPS = true
+			}
+			if fileCfg.TrustedSubnet != "" {
+				cfg.Server.TrustedSubnet = fileCfg.TrustedSubnet
 			}
 		}
 	}
@@ -243,6 +259,7 @@ func SetConfigByFlag() {
 	flag.StringVar(&cfg.Storage.DatabaseDsn, "d", "", "db dsn")
 	flag.StringVar(&cfg.Audit.AuditFile, "audit-file", "", "audit-file")
 	flag.StringVar(&cfg.Audit.AuditURL, "audit-url", "", "audit-url")
+	flag.StringVar(&serverConfig.TrustedSubnet, "t", "", "trusted_subnet")
 	flag.BoolVar(&serverConfig.EnableHTTPS, "s", false, "EnableHTTPS")
 	flag.Parse()
 }

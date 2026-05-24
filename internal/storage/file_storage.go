@@ -147,3 +147,8 @@ func findMatchingElement(filepath string, isShorten bool, searchValue string) *m
 
 	return &model.Shorty{}
 }
+
+func (fs *FileStorage) GetStats(ctx context.Context) (model.ResponseStats, error) {
+	_ = ctx
+	return model.ResponseStats{}, nil
+}

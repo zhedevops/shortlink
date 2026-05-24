@@ -2,9 +2,12 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
+	"net"
 
 	"github.com/rs/zerolog/log"
+	"github.com/zhedevops/shortlink/internal/config"
 	"github.com/zhedevops/shortlink/internal/logger"
 
 	"net/http"
@@ -53,4 +56,58 @@ func Logger(h http.Handler) http.Handler {
 			Int("size", size).
 			Send()
 	})
+}
+
+func TrustedSubnet(cnf config.ServerConfig) func(http.Handler) http.Handler {
+	var ipNet *net.IPNet
+	if cnf.TrustedSubnet != "" {
+		_, parsed, err := net.ParseCIDR(cnf.TrustedSubnet)
+		if err == nil {
+			ipNet = parsed
+		}
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if ipNet == nil {
+				http.Error(w, "trusted subnet is not configured", http.StatusForbidden)
+				return
+			}
+
+			ip, err := extractIP(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+			if !ipNet.Contains(ip) {
+				http.Error(w, "invalid ip", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func extractIP(r *http.Request) (net.IP, error) {
+	ipStr := r.Header.Get("X-Real-IP")
+	ip := net.ParseIP(ipStr)
+
+	if ip != nil {
+		return ip, nil
+	}
+
+	ips := r.Header.Get("X-Forwarded-For")
+	if ips == "" {
+		return nil, errors.New("X-Forwarded-For is empty")
+	}
+
+	ipStrs := strings.Split(ips, ",")
+	ipStr = strings.TrimSpace(ipStrs[0])
+
+	ip = net.ParseIP(ipStr)
+	if ip == nil {
+		return nil, errors.New("failed parse ip from headers")
+	}
+
+	return ip, nil
 }
