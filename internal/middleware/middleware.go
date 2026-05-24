@@ -69,16 +69,19 @@ func TrustedSubnet(cnf config.ServerConfig) func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if ipNet != nil {
-				ip, err := extractIP(r)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusForbidden)
-					return
-				}
-				if !ipNet.Contains(ip) {
-					http.Error(w, "invalid ip", http.StatusForbidden)
-					return
-				}
+			if ipNet == nil {
+				http.Error(w, "trusted subnet is not configured", http.StatusForbidden)
+				return
+			}
+
+			ip, err := extractIP(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+			if !ipNet.Contains(ip) {
+				http.Error(w, "invalid ip", http.StatusForbidden)
+				return
 			}
 			next.ServeHTTP(w, r)
 		})
